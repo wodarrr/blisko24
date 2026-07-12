@@ -1,24 +1,11 @@
+import Header from "../components/Header";
+
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-100">
-      {/* Nagłówek */}
-      <header className="bg-blue-700 text-white shadow-md">
-        <div className="mx-auto max-w-7xl px-6 py-5 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">BLISKO24</h1>
-
-          <nav className="space-x-6 text-lg">
-            <a href="#" className="hover:underline">
-              Strona główna
-            </a>
-            <a href="#" className="hover:underline">
-              Ogłoszenia
-            </a>
-            <a href="#" className="hover:underline">
-              Zaloguj
-            </a>
-          </nav>
-        </div>
-      </header>
+      <Header />
+        
 
       {/* Hero */}
       <section className="text-center py-20 px-6">
@@ -81,3 +68,9 @@ export default function Home() {
     </main>
   );
 }
+
+
+
+
+
+
