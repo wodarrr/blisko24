@@ -1,14 +1,61 @@
 "use client";
+import AdvertisementForm from "../../components/AdvertisementForm";
+import { useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 export default function AddAdvertisementPage() {
- function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+
+ const [advertisement, setAdvertisement] = useState({
+  title: "",
+  city: "",
+  category: "",
+  price: "",
+  phone: "",
+  email: "",
+});
+
+ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault();
 
   const formData = new FormData(event.currentTarget);
-  const title = formData.get("title");
 
-  alert(`Tytuł ogłoszenia: ${title}`);
+  const title = String(formData.get("title"));
+  const city = String(formData.get("city"));
+  const category = String(formData.get("category"));
+  const price = String(formData.get("price"));
+  const phone = String(formData.get("phone"));
+  const email = String(formData.get("email"));
+
+  setAdvertisement({
+    title,
+    city,
+    category,
+    price,
+    phone,
+    email,
+  });
+
+  const { error } = await supabase
+    .from("advertisements")
+    .insert([
+      {
+        title,
+        city,
+        category,
+        price,
+        phone,
+        email,
+      },
+    ]);
+
+  if (error) {
+  alert(JSON.stringify(error, null, 2));
+  console.log(error);
+  return;
 }
+
+  alert("Ogłoszenie zapisane!");
+ }
 
   return (
     <main className="min-h-screen bg-gray-100">
@@ -39,7 +86,9 @@ export default function AddAdvertisementPage() {
               Kategoria
             </label>
 
-            <select className="w-full rounded-xl border p-3">
+            <select 
+            name="category"
+            className="w-full rounded-xl border p-3">
               <option>Wybierz kategorię</option>
               <option>Szukam pracy</option>
               <option>Oferuję pracę</option>
@@ -94,7 +143,7 @@ export default function AddAdvertisementPage() {
               </label>
 
               <input
-                name="title"
+                name="city"
                 type="text"
                 placeholder="Np. Warszawa"
                 className="w-full rounded-xl border p-3"
@@ -108,6 +157,7 @@ export default function AddAdvertisementPage() {
             </label>
 
             <input
+            name="price"
               type="text"
               placeholder="Np. 150 zł"
               className="w-full rounded-xl border p-3"
@@ -120,10 +170,11 @@ export default function AddAdvertisementPage() {
                 Telefon
               </label>
 
-              <input
-                type="tel"
-                placeholder="Np. 600123456"
-                className="w-full rounded-xl border p-3"
+             <input
+               name="phone"
+               type="tel"
+               placeholder="Np. 600123456"
+               className="w-full rounded-xl border p-3"
               />
             </div>
 
@@ -133,10 +184,11 @@ export default function AddAdvertisementPage() {
               </label>
 
               <input
-                type="email"
-                placeholder="Np. jan@blisko24.pl"
-                className="w-full rounded-xl border p-3"
-              />
+  name="email"
+  type="email"
+  placeholder="Np. jan@blisko24.pl"
+  className="w-full rounded-xl border p-3"
+/>
             </div>
           </div>
 
@@ -145,6 +197,32 @@ export default function AddAdvertisementPage() {
           </button>
         </form>
       </div>
-    </main>
+    { advertisement.title&& (
+  <div className="mx-auto mt-8 max-w-3xl rounded-2xl bg-white p-8 shadow">
+    <h2 className="mb-4 text-2xl font-bold">
+      Podgląd ogłoszenia
+    </h2>
+
+    <h3 className="text-xl font-semibold text-blue-700">
+      {advertisement.title}
+    </h3>
+    <p className="mt-2 text-slate-600">
+  📍 {advertisement.city}
+</p>
+<p className="mt-2 text-slate-600">
+  📂 {advertisement.category}
+</p>
+<p className="mt-2 text-slate-600">
+  💰 {advertisement.price}
+</p>
+<p className="mt-2 text-slate-600">
+  📞 {advertisement.phone}
+</p>
+
+<p className="mt-2 text-slate-600">
+  📧 {advertisement.email}
+</p>
+  </div>
+)}</main>
   );
 }
