@@ -1,40 +1,53 @@
 import { getAdvertisements } from "../lib/getAdvertisements";
-import Link from "next/link";
-export default async function LatestAds() {
-  const advertisements = await getAdvertisements();
+import AdvertisementCard from "./AdvertisementCard";
+
+type Props = {
+  search?: string;
+  category?: string;
+  province?: string;
+  city?: string;
+  sort?: string;
+};
+
+export default async function LatestAds({
+  search,
+  category,
+  province,
+  city,
+  sort,
+}: Props) {
+  const advertisements = await getAdvertisements(
+  search,
+  category,
+  province,
+  city,
+  sort
+);
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-16">
+
       <h2 className="mb-8 text-3xl font-bold">
         Najnowsze ogłoszenia
       </h2>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {advertisements.map((advertisement: any) => (
-          <div
-            key={advertisement.id}
-            className="rounded-2xl bg-white p-6 shadow"
-          >
-            <h3 className="text-xl font-bold">
-              {advertisement.title}
-            </h3>
+      {advertisements.length === 0 ? (
+        <div className="rounded-2xl bg-white p-10 text-center shadow">
+          <p className="text-lg text-gray-500">
+            Nie znaleziono żadnych ogłoszeń.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-3">
+          {advertisements.map((advertisement: any) => (
+            <AdvertisementCard
+              key={advertisement.id}
+              advertisement={advertisement}
+            />
+          ))}
+        </div>
+      )}
 
-            <p className="mt-2 text-gray-600">
-              📍 {advertisement.city}
-            </p>
-
-            <p className="mt-4 font-semibold text-blue-700">
-              {advertisement.price}
-            </p>
-            <Link
-  href={`/ogloszenie/${advertisement.id}`}
-  className="mt-6 inline-block rounded-xl bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800"
->
-  Zobacz więcej
-</Link>
-          </div>
-        ))}
-      </div>
     </section>
   );
 }
