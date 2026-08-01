@@ -3,6 +3,7 @@ import { getAdvertisement } from "../../../lib/getAdvertisement";
 import ReportButton from "../../../components/ReportButton";
 import AddReview from "../../../components/AddReview";
 import AdvertisementAuthor from "../../../components/advertisement/AdvertisementAuthor";
+import AdvertisementGallery from "../../../components/advertisement/AdvertisementGallery";
 
 type Props = {
   params: Promise<{
@@ -47,6 +48,15 @@ export default async function AdvertisementPage({
     advertisement.price !== null &&
     advertisement.price !== undefined &&
     String(advertisement.price).trim() !== "";
+
+  const numericPrice = Number(advertisement.price);
+
+  const formattedPrice =
+    hasPrice && !Number.isNaN(numericPrice)
+      ? `${numericPrice.toLocaleString("pl-PL")} zł`
+      : hasPrice
+        ? `${advertisement.price} zł`
+        : "Cena do uzgodnienia";
 
   return (
     <main className="min-h-screen bg-gray-100 py-8 sm:py-12">
@@ -100,31 +110,15 @@ export default async function AdvertisementPage({
             </div>
 
             <p className="mt-6 break-words text-3xl font-extrabold text-blue-700">
-              {hasPrice
-                ? `${Number(
-                    advertisement.price
-                  ).toLocaleString("pl-PL")} zł`
-                : "Cena do uzgodnienia"}
+              {formattedPrice}
             </p>
           </div>
 
-          {advertisement.image_url ? (
-            <img
-              src={advertisement.image_url}
-              alt={advertisement.title}
-              className="max-h-[600px] w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-64 flex-col items-center justify-center bg-slate-100 text-slate-400 sm:h-96">
-              <span className="text-6xl">
-                📷
-              </span>
-
-              <span className="mt-3 font-semibold">
-                Brak zdjęcia
-              </span>
-            </div>
-          )}
+          <AdvertisementGallery
+            title={advertisement.title}
+            images={advertisement.advertisement_images}
+            fallbackImage={advertisement.image_url}
+          />
 
           <div className="p-5 sm:p-8">
 

@@ -39,9 +39,18 @@ export async function getAdvertisement(id: string) {
       ),
       favorites (
         id
+      ),
+      advertisement_images (
+        id,
+        image_url,
+        position
       )
     `)
     .eq("id", advertisementId)
+    .order("position", {
+      referencedTable: "advertisement_images",
+      ascending: true,
+    })
     .single();
 
   if (error) {
