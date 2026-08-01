@@ -16,7 +16,10 @@ export async function getAdvertisements(
         name,
         city,
         avatar_url,
-        verified
+        verified,
+        reviews!reviews_user_id_fkey (
+          rating
+        )
       ),
       favorites (
         id
@@ -44,25 +47,38 @@ export async function getAdvertisements(
   }
 
   if (city?.trim()) {
-    query = query.ilike("city", `%${city}%`);
+    query = query.ilike(
+      "city",
+      `%${city.trim()}%`
+    );
   }
 
   switch (sort) {
     case "cheap":
       query = query
-        .order("price", { ascending: true })
-        .order("created_at", { ascending: false });
+        .order("price", {
+          ascending: true,
+        })
+        .order("created_at", {
+          ascending: false,
+        });
       break;
 
     case "expensive":
       query = query
-        .order("price", { ascending: false })
-        .order("created_at", { ascending: false });
+        .order("price", {
+          ascending: false,
+        })
+        .order("created_at", {
+          ascending: false,
+        });
       break;
 
     case "promoted":
       query = query
-        .order("promoted", { ascending: false })
+        .order("promoted", {
+          ascending: false,
+        })
         .order("promoted_until", {
           ascending: false,
           nullsFirst: false,
@@ -74,7 +90,9 @@ export async function getAdvertisements(
 
     case "popular":
       query = query
-        .order("views", { ascending: false })
+        .order("views", {
+          ascending: false,
+        })
         .order("created_at", {
           ascending: false,
         });
@@ -94,6 +112,7 @@ export async function getAdvertisements(
       "Błąd pobierania ogłoszeń:",
       error
     );
+
     return [];
   }
 

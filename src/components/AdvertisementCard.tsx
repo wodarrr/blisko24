@@ -1,5 +1,6 @@
 import Link from "next/link";
 import FavoriteButton from "./FavoriteButton";
+import AdvertisementAuthor from "./advertisement/AdvertisementAuthor";
 import { Advertisement } from "../types/advertisement";
 
 type Props = {
@@ -45,6 +46,7 @@ export default function AdvertisementCard({
     }
 
     const now = new Date();
+
     const differenceInSeconds = Math.floor(
       (now.getTime() - createdDate.getTime()) / 1000
     );
@@ -57,7 +59,9 @@ export default function AdvertisementCard({
       return "przed chwilą";
     }
 
-    const minutes = Math.floor(differenceInSeconds / 60);
+    const minutes = Math.floor(
+      differenceInSeconds / 60
+    );
 
     if (minutes < 60) {
       return minutes === 1
@@ -96,7 +100,9 @@ export default function AdvertisementCard({
     });
   }
 
-  function formatPromotionEnd(date?: string | null) {
+  function formatPromotionEnd(
+    date?: string | null
+  ) {
     if (!date) return "";
 
     const promotionDate = new Date(date);
@@ -105,24 +111,15 @@ export default function AdvertisementCard({
       return "";
     }
 
-    return promotionDate.toLocaleDateString("pl-PL", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    return promotionDate.toLocaleDateString(
+      "pl-PL",
+      {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }
+    );
   }
-
-  const profileName =
-    advertisement.profiles?.name?.trim() ||
-    "Użytkownik BLISKO24";
-
-  const profileCity =
-    advertisement.profiles?.city?.trim() || "";
-
-  const profileInitial =
-    profileName === "Użytkownik BLISKO24"
-      ? "👤"
-      : profileName.charAt(0).toUpperCase();
 
   const favoritesCount =
     advertisement.favorites?.length ?? 0;
@@ -143,7 +140,6 @@ export default function AdvertisementCard({
           : "ring-slate-200"
       }`}
     >
-      {/* Zdjęcie */}
       <div className="relative overflow-hidden bg-slate-100">
         <Link
           href={`/ogloszenie/${advertisement.id}`}
@@ -169,7 +165,6 @@ export default function AdvertisementCard({
           )}
         </Link>
 
-        {/* Oznaczenia górne */}
         <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2">
           <div className="flex flex-col items-start gap-2">
             {advertisement.promoted && (
@@ -192,7 +187,6 @@ export default function AdvertisementCard({
           </div>
         </div>
 
-        {/* Kategoria */}
         {advertisement.category && (
           <span className="absolute bottom-3 left-3 max-w-[78%] truncate rounded-full bg-slate-950/80 px-3 py-1.5 text-xs font-semibold text-white shadow backdrop-blur">
             {advertisement.category}
@@ -200,71 +194,14 @@ export default function AdvertisementCard({
         )}
       </div>
 
-      {/* Treść */}
       <div className="flex flex-1 flex-col p-5 sm:p-6">
-        {/* Autor */}
-        <div className="mb-5 flex min-w-0 items-center justify-between gap-3">
-          {advertisement.user_id ? (
-            <Link
-              href={`/profil/${advertisement.user_id}`}
-              className="flex min-w-0 items-center gap-3"
-            >
-              {advertisement.profiles?.avatar_url ? (
-                <img
-                  src={advertisement.profiles.avatar_url}
-                  alt={`Profil ${profileName}`}
-                  loading="lazy"
-                  className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-slate-100"
-                />
-              ) : (
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
-                  {profileInitial}
-                </div>
-              )}
-
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-2">
-                  <p className="truncate font-bold text-slate-800 transition hover:text-blue-700">
-                    {profileName}
-                  </p>
-
-                  {advertisement.profiles?.verified && (
-                    <span
-                      title="Zweryfikowany użytkownik"
-                      className="shrink-0 text-green-600"
-                    >
-                      ✔
-                    </span>
-                  )}
-                </div>
-
-                {profileCity && (
-                  <p className="truncate text-sm text-slate-500">
-                    📍 {profileCity}
-                  </p>
-                )}
-              </div>
-            </Link>
-          ) : (
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-200">
-                👤
-              </div>
-
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-slate-700">
-                  Użytkownik BLISKO24
-                </p>
-
-                <p className="text-xs text-slate-400">
-                  Profil niedostępny
-                </p>
-              </div>
-            </div>
-          )}
+        <div className="mb-5">
+          <AdvertisementAuthor
+            userId={advertisement.user_id}
+            profile={advertisement.profiles}
+          />
         </div>
 
-        {/* Tytuł */}
         <Link
           href={`/ogloszenie/${advertisement.id}`}
           className="block"
@@ -274,7 +211,6 @@ export default function AdvertisementCard({
           </h3>
         </Link>
 
-        {/* Lokalizacja */}
         <div className="mt-4 space-y-1.5 text-sm text-slate-600">
           <p className="flex min-w-0 items-center gap-2">
             <span className="shrink-0">
@@ -282,7 +218,8 @@ export default function AdvertisementCard({
             </span>
 
             <span className="truncate">
-              {advertisement.city || "Brak miasta"}
+              {advertisement.city ||
+                "Brak miasta"}
             </span>
           </p>
 
@@ -299,26 +236,24 @@ export default function AdvertisementCard({
           )}
         </div>
 
-        {/* Cena */}
         <p className="mt-5 break-words text-2xl font-extrabold text-blue-700 sm:text-3xl">
           {formatPrice(advertisement.price)}
         </p>
 
-        {/* Koniec promocji */}
-        {advertisement.promoted && promotionEnd && (
-          <div className="mt-4 rounded-xl bg-yellow-50 px-4 py-3 text-sm font-semibold text-yellow-800">
-            ⭐ Promowane do {promotionEnd}
-          </div>
-        )}
+        {advertisement.promoted &&
+          promotionEnd && (
+            <div className="mt-4 rounded-xl bg-yellow-50 px-4 py-3 text-sm font-semibold text-yellow-800">
+              ⭐ Promowane do {promotionEnd}
+            </div>
+          )}
 
-        {/* Statystyki */}
         <div className="mt-auto pt-5">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-4 text-sm text-slate-500">
             <span title="Wyświetlenia">
               👁️{" "}
-              {(advertisement.views ?? 0).toLocaleString(
-                "pl-PL"
-              )}
+              {(
+                advertisement.views ?? 0
+              ).toLocaleString("pl-PL")}
             </span>
 
             <span title="Dodania do ulubionych">
@@ -342,6 +277,7 @@ export default function AdvertisementCard({
             className="mt-5 flex w-full items-center justify-center rounded-xl bg-blue-700 px-5 py-3.5 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-lg"
           >
             Zobacz ogłoszenie
+
             <span className="ml-2 transition group-hover:translate-x-1">
               →
             </span>

@@ -11,7 +11,10 @@ export default async function FeaturedAdvertisements() {
         name,
         city,
         avatar_url,
-        verified
+        verified,
+        reviews!reviews_user_id_fkey (
+          rating
+        )
       ),
       favorites (
         id
@@ -45,7 +48,6 @@ export default async function FeaturedAdvertisements() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
 
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-yellow-700">
               Wyróżnione oferty
@@ -68,7 +70,6 @@ export default async function FeaturedAdvertisements() {
             Zobacz wszystkie
             <span className="ml-2">→</span>
           </Link>
-
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

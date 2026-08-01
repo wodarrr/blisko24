@@ -11,7 +11,10 @@ export default async function PopularAdvertisements() {
         name,
         city,
         avatar_url,
-        verified
+        verified,
+        reviews!reviews_user_id_fkey (
+          rating
+        )
       ),
       favorites (
         id
@@ -43,7 +46,6 @@ export default async function PopularAdvertisements() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
 
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-red-600">
               Najczęściej oglądane
@@ -66,7 +68,6 @@ export default async function PopularAdvertisements() {
             Przeglądaj ogłoszenia
             <span className="ml-2">→</span>
           </Link>
-
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -27,9 +27,13 @@ export interface Advertisement {
   }[];
 
   profiles?: {
-    name: string | null;
-    city: string | null;
-    avatar_url: string | null;
-    verified?: boolean;
-  } | null;
+  name: string | null;
+  city: string | null;
+  avatar_url: string | null;
+  verified?: boolean;
+
+  reviews?: {
+    rating: number | string | null;
+  }[];
+} | null;
 }
