@@ -2,92 +2,104 @@
 
 import Link from "next/link";
 
-type Report = {
+export type AdminReport = {
   id: number;
-  reason: string;
-  advertisement_id: number;
+  reason: string | null;
+  advertisement_id: number | null;
+
   advertisements?: {
     id: number;
-    title: string;
+    title: string | null;
   } | null;
+
   profiles?: {
-    name: string;
+    name: string | null;
   } | null;
 };
 
 type Props = {
-  reports: Report[];
+  reports: AdminReport[];
 };
 
-export default function ReportsTable({ reports }: Props) {
+export default function ReportsTable({
+  reports,
+}: Props) {
   return (
-    <div className="mt-10 rounded-2xl bg-white p-8 shadow">
+    <section className="overflow-hidden rounded-3xl bg-white shadow">
+      <div className="border-b border-slate-200 p-6 sm:p-8">
+        <h2 className="text-2xl font-bold text-slate-900">
+          🚩 Zgłoszenia
+        </h2>
 
-      <h2 className="mb-6 text-2xl font-bold">
-        🚩 Zgłoszenia
-      </h2>
+        <p className="mt-2 text-sm text-slate-500">
+          Liczba zgłoszeń: {reports.length}
+        </p>
+      </div>
 
       {reports.length === 0 ? (
-        <p className="text-gray-500">
-          Brak zgłoszeń.
-        </p>
+        <div className="p-8 text-center">
+          <div className="text-5xl">✅</div>
+
+          <p className="mt-4 font-semibold text-green-700">
+            Brak zgłoszeń wymagających sprawdzenia.
+          </p>
+        </div>
       ) : (
-        <table className="w-full">
-
-          <thead>
-
-            <tr className="border-b text-left">
-
-              <th className="pb-3">Ogłoszenie</th>
-              <th className="pb-3">Powód</th>
-              <th className="pb-3">Zgłosił</th>
-              <th className="pb-3">Akcja</th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {reports.map((report) => (
-
-              <tr
-                key={report.id}
-                className="border-b"
-              >
-
-                <td className="py-4">
-                  {report.advertisements?.title ?? "-"}
-                </td>
-
-                <td>
-                  {report.reason}
-                </td>
-
-                <td>
-                  {report.profiles?.name ?? "-"}
-                </td>
-
-                <td>
-
-                  <Link
-                    href={`/ogloszenie/${report.advertisement_id}`}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                  >
-                    Otwórz
-                  </Link>
-
-                </td>
-
+        <div className="overflow-x-auto">
+          <table className="min-w-[800px] w-full">
+            <thead className="bg-slate-50">
+              <tr className="text-left text-sm text-slate-600">
+                <th className="px-6 py-4">Ogłoszenie</th>
+                <th className="px-6 py-4">Powód</th>
+                <th className="px-6 py-4">Zgłosił</th>
+                <th className="px-6 py-4">Akcja</th>
               </tr>
+            </thead>
 
-            ))}
+            <tbody>
+              {reports.map((report) => (
+                <tr
+                  key={report.id}
+                  className="border-t border-slate-100"
+                >
+                  <td className="max-w-xs px-6 py-5">
+                    <p className="truncate font-semibold text-slate-900">
+                      {report.advertisements?.title ||
+                        "Ogłoszenie niedostępne"}
+                    </p>
+                  </td>
 
-          </tbody>
+                  <td className="max-w-sm px-6 py-5 text-slate-700">
+                    <p className="break-words">
+                      {report.reason || "Brak podanego powodu"}
+                    </p>
+                  </td>
 
-        </table>
+                  <td className="px-6 py-5 text-slate-600">
+                    {report.profiles?.name ||
+                      "Użytkownik BLISKO24"}
+                  </td>
+
+                  <td className="px-6 py-5">
+                    {report.advertisement_id ? (
+                      <Link
+                        href={`/ogloszenie/${report.advertisement_id}`}
+                        className="inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                      >
+                        Otwórz
+                      </Link>
+                    ) : (
+                      <span className="text-sm text-slate-400">
+                        Niedostępne
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-
-    </div>
+    </section>
   );
 }

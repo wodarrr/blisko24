@@ -1,11 +1,78 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+
+import { supabase } from "../lib/supabase";
+
 import AuthButton from "./AuthButton";
 import NotificationBell from "./NotificationBell";
 import MessageBell from "./MessageBell";
 
 export default function Header() {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkAdminStatus(
+      userId?: string
+    ) {
+      if (!userId) {
+        if (!cancelled) {
+          setIsAdmin(false);
+        }
+
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.error(
+          "Błąd sprawdzania uprawnień administratora:",
+          error
+        );
+
+        setIsAdmin(false);
+        return;
+      }
+
+      setIsAdmin(data?.is_admin === true);
+    }
+
+    async function initialize() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      await checkAdminStatus(user?.id);
+    }
+
+    initialize();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        checkAdminStatus(
+          session?.user?.id
+        );
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-md">
       <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
@@ -49,12 +116,14 @@ export default function Header() {
 
           <NotificationBell />
 
-          <Link
-            href="/admin"
-            className="font-medium text-red-600 transition hover:text-red-700"
-          >
-            👑 Admin
-          </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="font-semibold text-red-600 transition hover:text-red-700"
+            >
+              👑 Admin
+            </Link>
+          )}
 
           <Link
             href="/dodaj-ogloszenie"
@@ -93,7 +162,10 @@ export default function Header() {
                 href="/wiadomosci"
                 className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700"
               >
-                <span className="text-xl">💬</span>
+                <span className="text-xl">
+                  💬
+                </span>
+
                 Wiadomości
               </Link>
 
@@ -101,16 +173,21 @@ export default function Header() {
                 href="/powiadomienia"
                 className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700"
               >
-                <span className="text-xl">🔔</span>
+                <span className="text-xl">
+                  🔔
+                </span>
+
                 Powiadomienia
               </Link>
 
-              <Link
-                href="/admin"
-                className="rounded-xl px-4 py-3 font-semibold text-red-600 hover:bg-red-50"
-              >
-                👑 Panel administratora
-              </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="rounded-xl px-4 py-3 font-semibold text-red-600 hover:bg-red-50"
+                >
+                  👑 Panel administratora
+                </Link>
+              )}
 
               <Link
                 href="/dodaj-ogloszenie"

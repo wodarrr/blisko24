@@ -15,8 +15,13 @@ export interface Advertisement {
   image_url: string | null;
 
   promoted: boolean;
-  urgent: boolean;
   promoted_until: string | null;
+
+  urgent: boolean;
+  urgent_until: string | null;
+
+  featured: boolean;
+  featured_until: string | null;
 
   views: number;
 
@@ -27,13 +32,13 @@ export interface Advertisement {
   }[];
 
   profiles?: {
-  name: string | null;
-  city: string | null;
-  avatar_url: string | null;
-  verified?: boolean;
+    name: string | null;
+    city: string | null;
+    avatar_url: string | null;
+    verified?: boolean;
 
-  reviews?: {
-    rating: number | string | null;
-  }[];
-} | null;
+    reviews?: {
+      rating: number | string | null;
+    }[];
+  } | null;
 }

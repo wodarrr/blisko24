@@ -7,119 +7,153 @@ type Props = {
   advertisement: Advertisement;
 };
 
-export default function AdvertisementCard({
-  advertisement,
-}: Props) {
-  function formatPrice(price: number | string) {
-    if (
-      price === null ||
-      price === undefined ||
-      String(price).trim() === ""
-    ) {
-      return "Cena do uzgodnienia";
-    }
+function isPromotionActive(
+  enabled?: boolean | null,
+  until?: string | null
+) {
+  if (!enabled) return false;
 
-    const normalizedPrice = String(price)
-      .replace(/\s/g, "")
-      .replace(",", ".");
+  if (!until) return true;
 
-    const numericPrice = Number(normalizedPrice);
+  const endDate = new Date(until);
 
-    if (Number.isNaN(numericPrice)) {
-      const priceText = String(price).trim();
-
-      return priceText.toLowerCase().includes("zł")
-        ? priceText
-        : `${priceText} zł`;
-    }
-
-    return `${numericPrice.toLocaleString("pl-PL")} zł`;
+  if (Number.isNaN(endDate.getTime())) {
+    return false;
   }
 
-  function formatRelativeDate(date?: string | null) {
-    if (!date) return "";
+  return endDate.getTime() > Date.now();
+}
 
-    const createdDate = new Date(date);
+function formatPrice(
+  price: number | string | null | undefined
+) {
+  if (
+    price === null ||
+    price === undefined ||
+    String(price).trim() === ""
+  ) {
+    return "Cena do uzgodnienia";
+  }
 
-    if (Number.isNaN(createdDate.getTime())) {
-      return "";
+  const normalizedPrice = String(price)
+    .replace(/\s/g, "")
+    .replace(",", ".");
+
+  const numericPrice = Number(normalizedPrice);
+
+  if (Number.isNaN(numericPrice)) {
+    const priceText = String(price).trim();
+
+    return priceText.toLowerCase().includes("zł")
+      ? priceText
+      : `${priceText} zł`;
+  }
+
+  return `${numericPrice.toLocaleString("pl-PL")} zł`;
+}
+
+function formatRelativeDate(
+  date?: string | null
+) {
+  if (!date) return "";
+
+  const createdDate = new Date(date);
+
+  if (Number.isNaN(createdDate.getTime())) {
+    return "";
+  }
+
+  const differenceInSeconds = Math.floor(
+    (Date.now() - createdDate.getTime()) / 1000
+  );
+
+  if (differenceInSeconds < 0) {
+    return createdDate.toLocaleDateString("pl-PL");
+  }
+
+  if (differenceInSeconds < 60) {
+    return "przed chwilą";
+  }
+
+  const minutes = Math.floor(
+    differenceInSeconds / 60
+  );
+
+  if (minutes < 60) {
+    return minutes === 1
+      ? "minutę temu"
+      : `${minutes} min temu`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    if (hours === 1) {
+      return "godzinę temu";
     }
 
-    const now = new Date();
-
-    const differenceInSeconds = Math.floor(
-      (now.getTime() - createdDate.getTime()) / 1000
-    );
-
-    if (differenceInSeconds < 0) {
-      return createdDate.toLocaleDateString("pl-PL");
+    if (hours >= 2 && hours <= 4) {
+      return `${hours} godziny temu`;
     }
 
-    if (differenceInSeconds < 60) {
-      return "przed chwilą";
-    }
+    return `${hours} godzin temu`;
+  }
 
-    const minutes = Math.floor(
-      differenceInSeconds / 60
-    );
+  const days = Math.floor(hours / 24);
 
-    if (minutes < 60) {
-      return minutes === 1
-        ? "minutę temu"
-        : `${minutes} min temu`;
-    }
+  if (days === 1) {
+    return "wczoraj";
+  }
 
-    const hours = Math.floor(minutes / 60);
+  if (days < 7) {
+    return `${days} dni temu`;
+  }
 
-    if (hours < 24) {
-      if (hours === 1) {
-        return "godzinę temu";
-      }
+  return createdDate.toLocaleDateString("pl-PL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
-      if (hours >= 2 && hours <= 4) {
-        return `${hours} godziny temu`;
-      }
+function formatPromotionEnd(
+  date?: string | null
+) {
+  if (!date) return "";
 
-      return `${hours} godzin temu`;
-    }
+  const promotionDate = new Date(date);
 
-    const days = Math.floor(hours / 24);
+  if (Number.isNaN(promotionDate.getTime())) {
+    return "";
+  }
 
-    if (days === 1) {
-      return "wczoraj";
-    }
-
-    if (days < 7) {
-      return `${days} dni temu`;
-    }
-
-    return createdDate.toLocaleDateString("pl-PL", {
+  return promotionDate.toLocaleDateString(
+    "pl-PL",
+    {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-    });
-  }
-
-  function formatPromotionEnd(
-    date?: string | null
-  ) {
-    if (!date) return "";
-
-    const promotionDate = new Date(date);
-
-    if (Number.isNaN(promotionDate.getTime())) {
-      return "";
     }
+  );
+}
 
-    return promotionDate.toLocaleDateString(
-      "pl-PL",
-      {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }
-    );
-  }
+export default function AdvertisementCard({
+  advertisement,
+}: Props) {
+  const promotedActive = isPromotionActive(
+    advertisement.promoted,
+    advertisement.promoted_until
+  );
+
+  const urgentActive = isPromotionActive(
+    advertisement.urgent,
+    advertisement.urgent_until
+  );
+
+  const featuredActive = isPromotionActive(
+    advertisement.featured,
+    advertisement.featured_until
+  );
 
   const favoritesCount =
     advertisement.favorites?.length ?? 0;
@@ -128,17 +162,29 @@ export default function AdvertisementCard({
     advertisement.created_at
   );
 
-  const promotionEnd = formatPromotionEnd(
+  const promotedEnd = formatPromotionEnd(
     advertisement.promoted_until
   );
 
+  const urgentEnd = formatPromotionEnd(
+    advertisement.urgent_until
+  );
+
+  const featuredEnd = formatPromotionEnd(
+    advertisement.featured_until
+  );
+
+  const cardStyle = urgentActive
+    ? "border-2 border-red-400 bg-red-50/30 shadow-red-100"
+    : promotedActive
+      ? "border-2 border-yellow-400 bg-yellow-50/30 shadow-yellow-100"
+      : featuredActive
+        ? "border-2 border-purple-400 bg-purple-50/30 shadow-purple-100"
+        : "border border-slate-200 bg-white";
+
   return (
     <article
-      className={`group flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 transition duration-300 hover:-translate-y-1.5 hover:shadow-2xl ${
-        advertisement.promoted
-          ? "ring-2 ring-yellow-400 shadow-yellow-100"
-          : "ring-slate-200"
-      }`}
+      className={`group flex h-full flex-col overflow-hidden rounded-3xl shadow-sm transition duration-300 hover:-translate-y-1.5 hover:shadow-2xl ${cardStyle}`}
     >
       <div className="relative overflow-hidden bg-slate-100">
         <Link
@@ -167,17 +213,25 @@ export default function AdvertisementCard({
 
         <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2">
           <div className="flex flex-col items-start gap-2">
-            {advertisement.promoted && (
+
+            {promotedActive && (
               <span className="rounded-full bg-yellow-400 px-3 py-1.5 text-xs font-extrabold text-slate-900 shadow-lg">
                 ⭐ PROMOWANE
               </span>
             )}
 
-            {advertisement.urgent && (
+            {urgentActive && (
               <span className="rounded-full bg-red-600 px-3 py-1.5 text-xs font-extrabold text-white shadow-lg">
                 🔥 PILNE
               </span>
             )}
+
+            {featuredActive && (
+              <span className="rounded-full bg-purple-600 px-3 py-1.5 text-xs font-extrabold text-white shadow-lg">
+                📌 WYRÓŻNIONE
+              </span>
+            )}
+
           </div>
 
           <div className="pointer-events-auto rounded-full bg-white/95 p-1 shadow-lg backdrop-blur">
@@ -195,6 +249,7 @@ export default function AdvertisementCard({
       </div>
 
       <div className="flex flex-1 flex-col p-5 sm:p-6">
+
         <div className="mb-5">
           <AdvertisementAuthor
             userId={advertisement.user_id}
@@ -240,15 +295,35 @@ export default function AdvertisementCard({
           {formatPrice(advertisement.price)}
         </p>
 
-        {advertisement.promoted &&
-          promotionEnd && (
-            <div className="mt-4 rounded-xl bg-yellow-50 px-4 py-3 text-sm font-semibold text-yellow-800">
-              ⭐ Promowane do {promotionEnd}
-            </div>
-          )}
+        {(promotedActive ||
+          urgentActive ||
+          featuredActive) && (
+          <div className="mt-4 space-y-2">
+
+            {promotedActive && promotedEnd && (
+              <div className="rounded-xl bg-yellow-100 px-4 py-2.5 text-sm font-semibold text-yellow-900">
+                ⭐ Promowane do {promotedEnd}
+              </div>
+            )}
+
+            {urgentActive && urgentEnd && (
+              <div className="rounded-xl bg-red-100 px-4 py-2.5 text-sm font-semibold text-red-800">
+                🔥 Pilne do {urgentEnd}
+              </div>
+            )}
+
+            {featuredActive && featuredEnd && (
+              <div className="rounded-xl bg-purple-100 px-4 py-2.5 text-sm font-semibold text-purple-800">
+                📌 Wyróżnione do {featuredEnd}
+              </div>
+            )}
+
+          </div>
+        )}
 
         <div className="mt-auto pt-5">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-4 text-sm text-slate-500">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-200 pt-4 text-sm text-slate-500">
+
             <span title="Wyświetlenia">
               👁️{" "}
               {(
@@ -270,11 +345,20 @@ export default function AdvertisementCard({
                 🕒 {relativeDate}
               </span>
             )}
+
           </div>
 
           <Link
             href={`/ogloszenie/${advertisement.id}`}
-            className="mt-5 flex w-full items-center justify-center rounded-xl bg-blue-700 px-5 py-3.5 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-lg"
+            className={`mt-5 flex w-full items-center justify-center rounded-xl px-5 py-3.5 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${
+              urgentActive
+                ? "bg-red-600 hover:bg-red-700"
+                : promotedActive
+                  ? "bg-yellow-500 text-slate-950 hover:bg-yellow-600"
+                  : featuredActive
+                    ? "bg-purple-600 hover:bg-purple-700"
+                    : "bg-blue-700 hover:bg-blue-800"
+            }`}
           >
             Zobacz ogłoszenie
 
