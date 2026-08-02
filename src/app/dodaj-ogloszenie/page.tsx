@@ -280,18 +280,23 @@ export default function AddAdvertisementPage() {
       error: advertisementError,
     } = await supabase
       .from("advertisements")
-      .insert({
-        title,
-        category,
-        description,
-        province,
-        city,
-        price,
-        phone,
-        email,
-        image_url: null,
-        user_id: user.id,
-      })
+      .insert([
+        {
+          title,
+          category,
+          description,
+          province,
+          city,
+          price,
+          phone,
+          email,
+          image_url: null,
+          user_id: user.id,
+          status: "pending",
+          approved_at: null,
+          approved_by: null,
+        },
+      ])
       .select("id")
       .single();
 
@@ -456,11 +461,11 @@ export default function AddAdvertisementPage() {
     form.reset();
     setSaving(false);
 
-    alert("Ogłoszenie zostało zapisane!");
-
-    router.push(
-      `/ogloszenie/${advertisementId}`
+    alert(
+      "Ogłoszenie zostało wysłane do moderacji. Pojawi się publicznie po zatwierdzeniu przez administratora."
     );
+
+    router.push("/moje-ogloszenia");
 
     router.refresh();
   }

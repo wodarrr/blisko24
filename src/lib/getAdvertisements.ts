@@ -69,7 +69,8 @@ export async function getAdvertisements(
       favorites (
         id
       )
-    `);
+    `)
+    .eq("status", "approved");
 
   if (search?.trim()) {
     const phrase = search
@@ -103,7 +104,7 @@ export async function getAdvertisements(
   }
 
   /*
-   * Cena jest obecnie zapisywana również jako tekst,
+   * Cena może być zapisana również jako tekst,
    * dlatego filtrowanie i sortowanie cen wykonujemy
    * bezpiecznie po pobraniu danych.
    */
