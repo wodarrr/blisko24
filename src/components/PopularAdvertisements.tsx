@@ -20,6 +20,7 @@ export default async function PopularAdvertisements() {
         id
       )
     `)
+    .eq("status", "approved")
     .order("views", {
       ascending: false,
     })
