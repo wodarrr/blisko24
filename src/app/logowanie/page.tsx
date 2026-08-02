@@ -1,16 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { signIn, signUp } from "../../lib/auth";
+import { signIn } from "../../lib/auth";
 import { supabase } from "../../lib/supabase";
+
+const TERMS_VERSION = "2026-08-02";
+const PRIVACY_VERSION = "2026-08-02";
 
 export default function LoginPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const [acceptTerms, setAcceptTerms] =
+    useState(false);
+
+  const [confirmPrivacy, setConfirmPrivacy] =
+    useState(false);
 
   const [loggingIn, setLoggingIn] =
     useState(false);
@@ -135,24 +145,69 @@ export default function LoginPage() {
       return;
     }
 
+    if (!acceptTerms) {
+      alert(
+        "Aby utworzyć konto, zaakceptuj Regulamin BLISKO24."
+      );
+
+      return;
+    }
+
+    if (!confirmPrivacy) {
+      alert(
+        "Potwierdź zapoznanie się z Polityką prywatności."
+      );
+
+      return;
+    }
+
     if (registering) return;
 
     setRegistering(true);
 
-    const { error } = await signUp(
-      normalizedEmail,
-      password
-    );
+    const acceptedAt =
+      new Date().toISOString();
+
+    const { error } =
+      await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          emailRedirectTo:
+            `${window.location.origin}/`,
+          data: {
+            terms_accepted: true,
+            terms_version:
+              TERMS_VERSION,
+            terms_accepted_at:
+              acceptedAt,
+
+            privacy_acknowledged: true,
+            privacy_version:
+              PRIVACY_VERSION,
+            privacy_acknowledged_at:
+              acceptedAt,
+          },
+        },
+      });
 
     setRegistering(false);
 
     if (error) {
+      console.error(
+        "Błąd rejestracji:",
+        error
+      );
+
       alert(error.message);
       return;
     }
 
+    setAcceptTerms(false);
+    setConfirmPrivacy(false);
+
     alert(
-      "Konto zostało utworzone. Sprawdź e-mail, jeśli wymagane jest potwierdzenie."
+      "Konto zostało utworzone. Sprawdź swoją skrzynkę e-mail, jeżeli wymagane jest potwierdzenie adresu."
     );
   }
 
@@ -176,7 +231,7 @@ export default function LoginPage() {
         normalizedEmail,
         {
           redirectTo:
-            "http://localhost:3000/reset-hasla",
+            `${window.location.origin}/reset-hasla`,
         }
       );
 
@@ -212,7 +267,7 @@ export default function LoginPage() {
     sendingReset;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 sm:px-6">
+    <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-10 sm:px-6">
       <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-lg sm:p-8">
 
         <div className="text-center">
@@ -225,7 +280,8 @@ export default function LoginPage() {
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">
-            Zaloguj się do swojego konta BLISKO24.
+            Zaloguj się albo utwórz konto
+            BLISKO24.
           </p>
         </div>
 
@@ -264,7 +320,7 @@ export default function LoginPage() {
             id="login-password"
             type="password"
             autoComplete="current-password"
-            placeholder="Wpisz hasło"
+            placeholder="Minimum 8 znaków"
             value={password}
             disabled={formBusy}
             onChange={(event) =>
@@ -286,15 +342,85 @@ export default function LoginPage() {
             : "Zaloguj się"}
         </button>
 
+        <div className="my-7 flex items-center gap-4">
+          <div className="h-px flex-1 bg-slate-200" />
+
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Nowe konto
+          </span>
+
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={acceptTerms}
+              disabled={formBusy}
+              onChange={(event) =>
+                setAcceptTerms(
+                  event.target.checked
+                )
+              }
+              className="mt-1 h-5 w-5 shrink-0 accent-blue-700"
+            />
+
+            <span className="text-sm leading-6 text-slate-700">
+              Akceptuję{" "}
+              <Link
+                href="/regulamin"
+                target="_blank"
+                className="font-bold text-blue-700 hover:underline"
+              >
+                Regulamin BLISKO24
+              </Link>
+              . *
+            </span>
+          </label>
+
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={confirmPrivacy}
+              disabled={formBusy}
+              onChange={(event) =>
+                setConfirmPrivacy(
+                  event.target.checked
+                )
+              }
+              className="mt-1 h-5 w-5 shrink-0 accent-blue-700"
+            />
+
+            <span className="text-sm leading-6 text-slate-700">
+              Potwierdzam, że zapoznałem się
+              z{" "}
+              <Link
+                href="/polityka-prywatnosci"
+                target="_blank"
+                className="font-bold text-blue-700 hover:underline"
+              >
+                Polityką prywatności
+              </Link>
+              . *
+            </span>
+          </label>
+
+          <p className="text-xs leading-5 text-slate-500">
+            Pola oznaczone gwiazdką są wymagane
+            do utworzenia konta.
+          </p>
+        </div>
+
         <button
           type="button"
           onClick={handleRegister}
           disabled={formBusy}
-          className="mt-3 w-full rounded-xl bg-green-600 py-3.5 font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 w-full rounded-xl bg-green-600 py-3.5 font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {registering
             ? "Tworzenie konta..."
-            : "Załóż konto"}
+            : "Załóż bezpłatne konto"}
         </button>
 
         <button

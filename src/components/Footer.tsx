@@ -1,106 +1,172 @@
 import Link from "next/link";
 
+const footerLinks = {
+  portal: [
+    {
+      label: "Strona główna",
+      href: "/",
+    },
+    {
+      label: "Dodaj ogłoszenie",
+      href: "/dodaj-ogloszenie",
+    },
+    {
+      label: "Moje ogłoszenia",
+      href: "/moje-ogloszenia",
+    },
+    {
+      label: "Moje konto",
+      href: "/konto",
+    },
+  ],
+
+  information: [
+    {
+      label: "O nas",
+      href: "/o-nas",
+    },
+    {
+      label: "Kontakt",
+      href: "/kontakt",
+    },
+    {
+      label: "Regulamin",
+      href: "/regulamin",
+    },
+    {
+      label: "Polityka prywatności",
+      href: "/polityka-prywatnosci",
+    },
+    {
+      label: "Polityka cookies",
+      href: "/polityka-cookies",
+    },
+  ],
+};
+
 export default function Footer() {
   return (
-    <footer className="mt-24 bg-slate-900 text-white">
-      <div className="mx-auto grid max-w-7xl gap-12 px-6 py-14 md:grid-cols-4">
-
-        {/* Logo */}
+    <footer className="mt-24 bg-slate-950 text-white">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-4">
 
         <div>
-          <h2 className="text-3xl font-extrabold">
-            BLISKO24
+          <Link
+            href="/"
+            className="inline-flex items-center gap-3"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-700 text-2xl font-extrabold shadow-lg">
+              B
+            </div>
+
+            <div>
+              <p className="text-2xl font-extrabold tracking-tight">
+                BLISKO24
+              </p>
+
+              <p className="text-xs text-slate-400">
+                Portal lokalnych możliwości
+              </p>
+            </div>
+          </Link>
+
+          <p className="mt-5 max-w-sm leading-7 text-slate-300">
+            Miejsce, w którym możesz znaleźć pracę,
+            zaoferować usługę, poprosić o pomoc lub
+            nawiązać kontakt z osobami w swojej okolicy.
+          </p>
+
+          <p className="mt-4 text-sm font-semibold text-slate-400">
+            Praca • Usługi • Pomoc • Ludzie
+          </p>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-bold">
+            Portal
           </h2>
 
-          <p className="mt-4 text-slate-300">
-            Portal lokalnych możliwości.
-          </p>
-
-          <p className="mt-2 text-slate-400">
-            Praca • Usługi • Pomoc • Sąsiedzi
-          </p>
-        </div>
-
-        {/* Portal */}
-
-        <div>
-          <h3 className="mb-4 text-lg font-bold">
-            Portal
-          </h3>
-
-          <ul className="space-y-2 text-slate-300">
-
-            <li>
-              <Link href="/">
-                Strona główna
-              </Link>
-            </li>
-
-            <li>
-              <Link href="/dodaj-ogloszenie">
-                Dodaj ogłoszenie
-              </Link>
-            </li>
-
-            <li>
-              <Link href="/konto">
-                Moje konto
-              </Link>
-            </li>
-
+          <ul className="mt-5 space-y-3">
+            {footerLinks.portal.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="text-slate-300 transition hover:text-white"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
 
-        {/* Informacje */}
-
         <div>
-          <h3 className="mb-4 text-lg font-bold">
-            Informacje
-          </h3>
+          <h2 className="text-lg font-bold">
+            Informacje i zasady
+          </h2>
 
-          <ul className="space-y-2 text-slate-300">
-
-            <li>
-              <Link href="/regulamin">
-                Regulamin
-              </Link>
-            </li>
-
-            <li>
-              <Link href="/polityka-prywatnosci">
-                Polityka prywatności
-              </Link>
-            </li>
-
-            <li>
-              <Link href="/kontakt">
-                Kontakt
-              </Link>
-            </li>
-
+          <ul className="mt-5 space-y-3">
+            {footerLinks.information.map(
+              (link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-slate-300 transition hover:text-white"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              )
+            )}
           </ul>
         </div>
 
-        {/* Kontakt */}
-
         <div>
-          <h3 className="mb-4 text-lg font-bold">
+          <h2 className="text-lg font-bold">
             Kontakt
-          </h3>
+          </h2>
 
-          <p className="text-slate-300">
-            kontakt@blisko24.pl
-          </p>
+          <div className="mt-5 space-y-3 text-slate-300">
+            <p>
+              <span className="mr-2">
+                📧
+              </span>
 
-          <p className="mt-2 text-slate-400">
-            Polska
-          </p>
+              <a
+                href="mailto:kontakt@blisko24.com.pl"
+                className="break-all transition hover:text-white"
+              >
+                kontakt@blisko24.com.pl
+              </a>
+            </p>
+
+            <p>
+              <span className="mr-2">
+                🌍
+              </span>
+
+              Polska
+            </p>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-sm leading-6 text-slate-400">
+            Masz pytanie, zauważyłeś błąd lub
+            nieodpowiednie ogłoszenie? Skorzystaj ze
+            strony kontaktowej albo funkcji zgłoszenia.
+          </div>
         </div>
-
       </div>
 
-      <div className="border-t border-slate-800 py-6 text-center text-sm text-slate-400">
-        © {new Date().getFullYear()} BLISKO24. Wszelkie prawa zastrzeżone.
+      <div className="border-t border-slate-800">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-slate-400 sm:px-6 md:flex-row md:items-center md:justify-between">
+          <p>
+            © {new Date().getFullYear()} BLISKO24.
+            Wszelkie prawa zastrzeżone.
+          </p>
+
+          <p>
+            Znajdź ludzi, nie tylko ogłoszenia.
+          </p>
+        </div>
       </div>
     </footer>
   );
