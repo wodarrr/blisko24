@@ -1,147 +1,198 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import {
   useRouter,
   useSearchParams,
 } from "next/navigation";
+
 import { supabase } from "../../../lib/supabase";
 
-export default function NewMessagePage() {
+function NewMessageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    startConversation();
-  }, []);
+    let cancelled = false;
 
-  async function startConversation() {
-    const adId = searchParams.get("ad");
+    async function startConversation() {
+      const adId = searchParams.get("ad");
+      const advertisementId = Number(adId);
 
-    if (!adId) {
-      router.replace("/wiadomosci");
-      return;
-    }
+      if (
+        !Number.isInteger(advertisementId) ||
+        advertisementId <= 0
+      ) {
+        router.replace("/wiadomosci");
+        return;
+      }
 
-    const numericAdId = Number(adId);
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (
-      !Number.isInteger(numericAdId) ||
-      numericAdId <= 0
-    ) {
-      alert("Nieprawidłowe ID ogłoszenia.");
-      router.replace("/");
-      return;
-    }
+      if (cancelled) return;
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+      if (userError) {
+        console.error(
+          "Błąd pobierania użytkownika:",
+          userError
+        );
+      }
 
-    if (userError) {
-      console.error(
-        "BŁĄD POBIERANIA UŻYTKOWNIKA:",
-        userError
+      if (!user) {
+        router.replace("/logowanie");
+        return;
+      }
+
+      const {
+        data: advertisement,
+        error: advertisementError,
+      } = await supabase
+        .from("advertisements")
+        .select("id, user_id")
+        .eq("id", advertisementId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (advertisementError) {
+        console.error(
+          "Błąd pobierania ogłoszenia:",
+          advertisementError
+        );
+
+        alert(
+          "Nie udało się pobrać danych ogłoszenia."
+        );
+
+        router.replace("/");
+        return;
+      }
+
+      if (!advertisement) {
+        alert("Ogłoszenie nie istnieje.");
+        router.replace("/");
+        return;
+      }
+
+      if (!advertisement.user_id) {
+        alert(
+          "To ogłoszenie nie ma przypisanego właściciela. Nie można rozpocząć rozmowy."
+        );
+
+        router.replace(
+          `/ogloszenie/${advertisementId}`
+        );
+
+        return;
+      }
+
+      if (advertisement.user_id === user.id) {
+        alert(
+          "Nie możesz rozpocząć rozmowy z samym sobą."
+        );
+
+        router.replace("/moje-ogloszenia");
+        return;
+      }
+
+      const {
+        data: conversationId,
+        error: conversationError,
+      } = await supabase.rpc(
+        "get_or_create_conversation",
+        {
+          p_buyer_id: user.id,
+          p_seller_id:
+            advertisement.user_id,
+          p_advertisement_id:
+            advertisementId,
+        }
       );
-    }
 
-    if (!user) {
-      router.replace("/logowanie");
-      return;
-    }
+      if (cancelled) return;
 
-    const {
-      data: advertisement,
-      error: advertisementError,
-    } = await supabase
-      .from("advertisements")
-      .select("id, user_id, title")
-      .eq("id", numericAdId)
-      .maybeSingle();
+      if (conversationError) {
+        console.error(
+          "Błąd tworzenia rozmowy:",
+          conversationError
+        );
 
-    if (advertisementError) {
-      console.error(
-        "BŁĄD POBIERANIA OGŁOSZENIA:",
-        advertisementError
-      );
+        alert(
+          conversationError.message ||
+            "Nie udało się rozpocząć rozmowy."
+        );
 
-      alert("Nie udało się pobrać ogłoszenia.");
-      router.replace("/");
-      return;
-    }
+        router.replace(
+          `/ogloszenie/${advertisementId}`
+        );
 
-    if (!advertisement) {
-      alert("Ogłoszenie nie istnieje.");
-      router.replace("/");
-      return;
-    }
+        return;
+      }
 
-    if (!advertisement.user_id) {
-      alert(
-        "To ogłoszenie nie ma przypisanego właściciela. Nie można rozpocząć rozmowy."
-      );
+      if (!conversationId) {
+        alert(
+          "Nie udało się uzyskać numeru rozmowy."
+        );
 
-      console.error(
-        "OGŁOSZENIE BEZ USER_ID:",
-        advertisement
-      );
+        router.replace(
+          `/ogloszenie/${advertisementId}`
+        );
+
+        return;
+      }
 
       router.replace(
-        `/ogloszenie/${numericAdId}`
+        `/wiadomosci/${conversationId}`
       );
-
-      return;
     }
 
-    if (advertisement.user_id === user.id) {
-      alert(
-        "Nie możesz rozpocząć rozmowy z samym sobą."
-      );
+    startConversation();
 
-      router.replace("/moje-ogloszenia");
-      return;
-    }
-
-    const {
-      data: conversationId,
-      error,
-    } = await supabase.rpc(
-      "get_or_create_conversation",
-      {
-        p_buyer_id: user.id,
-        p_seller_id:
-          advertisement.user_id,
-        p_advertisement_id:
-          numericAdId,
-      }
-    );
-
-    if (error) {
-      console.error("RPC ERROR:", error);
-      alert(
-        `Nie udało się utworzyć rozmowy: ${error.message}`
-      );
-      return;
-    }
-
-    if (!conversationId) {
-      alert(
-        "Nie zwrócono ID rozmowy."
-      );
-      return;
-    }
-
-    router.replace(
-      `/wiadomosci/${conversationId}`
-    );
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <p className="text-xl">
-        Tworzenie rozmowy...
-      </p>
+    <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
+      <div className="rounded-3xl bg-white p-10 text-center shadow">
+        <div className="text-5xl">
+          💬
+        </div>
+
+        <p className="mt-4 text-lg font-semibold text-slate-700">
+          Tworzenie rozmowy...
+        </p>
+      </div>
     </main>
+  );
+}
+
+function NewMessageLoading() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
+      <div className="rounded-3xl bg-white p-10 text-center shadow">
+        <div className="text-5xl">
+          💬
+        </div>
+
+        <p className="mt-4 text-lg font-semibold text-slate-700">
+          Ładowanie...
+        </p>
+      </div>
+    </main>
+  );
+}
+
+export default function NewMessagePage() {
+  return (
+    <Suspense
+      fallback={<NewMessageLoading />}
+    >
+      <NewMessageContent />
+    </Suspense>
   );
 }

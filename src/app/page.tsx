@@ -18,16 +18,28 @@ type Props = {
     province?: string;
     city?: string;
     sort?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    promoted?: string;
+    urgent?: string;
+    featured?: string;
   }>;
 };
 
-export default async function Home({ searchParams }: Props) {
+export default async function Home({
+  searchParams,
+}: Props) {
   const {
     search,
     category,
     province,
     city,
     sort,
+    minPrice,
+    maxPrice,
+    promoted,
+    urgent,
+    featured,
   } = await searchParams;
 
   return (
@@ -39,6 +51,7 @@ export default async function Home({ searchParams }: Props) {
       <HomeStats />
 
       <FeaturedAdvertisements />
+
       <PopularAdvertisements />
 
       <Categories />
@@ -49,6 +62,11 @@ export default async function Home({ searchParams }: Props) {
         province={province}
         city={city}
         sort={sort}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        promotedOnly={promoted === "true"}
+        urgentOnly={urgent === "true"}
+        featuredOnly={featured === "true"}
       />
 
       <ProvinceStatistics />
