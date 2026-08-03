@@ -16,6 +16,10 @@ type Advertisement = {
   views: number | null;
   created_at: string;
 
+  status: "pending" | "approved" | "rejected" | string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+
   promoted: boolean | null;
   promoted_until: string | null;
 
@@ -120,6 +124,66 @@ function getRemainingDays(
   );
 }
 
+function getModerationStatus(
+  status?: string | null
+) {
+  switch (status) {
+    case "approved":
+      return {
+        label: "Opublikowane",
+        description:
+          "Ogłoszenie jest widoczne publicznie.",
+        icon: "●",
+        containerClass:
+          "border-green-200 bg-green-50",
+        labelClass: "text-green-700",
+      };
+
+    case "rejected":
+      return {
+        label: "Odrzucone",
+        description:
+          "Ogłoszenie nie zostało opublikowane.",
+        icon: "●",
+        containerClass:
+          "border-red-200 bg-red-50",
+        labelClass: "text-red-700",
+      };
+
+    case "pending":
+    default:
+      return {
+        label: "Oczekuje na moderację",
+        description:
+          "Ogłoszenie nie jest jeszcze widoczne publicznie.",
+        icon: "●",
+        containerClass:
+          "border-yellow-200 bg-yellow-50",
+        labelClass: "text-yellow-700",
+      };
+  }
+}
+
+function formatDateTime(
+  date?: string | null
+) {
+  if (!date) return "";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  return parsedDate.toLocaleString("pl-PL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function MyAdvertisementsPage() {
   const router = useRouter();
 
@@ -168,6 +232,9 @@ export default function MyAdvertisementsPage() {
         image_url,
         views,
         created_at,
+        status,
+        approved_at,
+        approved_by,
         promoted,
         promoted_until,
         urgent,
@@ -350,6 +417,20 @@ export default function MyAdvertisementsPage() {
                 const deleting =
                   deletingId === advertisement.id;
 
+                const moderationStatus =
+                  getModerationStatus(
+                    advertisement.status
+                  );
+
+                const isApproved =
+                  advertisement.status ===
+                  "approved";
+
+                const approvedDate =
+                  formatDateTime(
+                    advertisement.approved_at
+                  );
+
                 return (
                   <article
                     key={advertisement.id}
@@ -463,16 +544,44 @@ export default function MyAdvertisementsPage() {
                             </p>
                           </div>
 
-                          <div className="rounded-2xl bg-slate-50 p-4">
+                          <div
+                            className={`rounded-2xl border p-4 ${moderationStatus.containerClass}`}
+                          >
                             <p className="text-sm text-slate-500">
                               Status
                             </p>
 
-                            <p className="mt-1 font-bold text-green-700">
-                              ● Aktywne
+                            <p
+                              className={`mt-1 font-bold ${moderationStatus.labelClass}`}
+                            >
+                              {moderationStatus.icon}{" "}
+                              {moderationStatus.label}
+                            </p>
+
+                            <p className="mt-2 text-xs leading-5 text-slate-500">
+                              {moderationStatus.description}
                             </p>
                           </div>
                         </div>
+
+                        {isApproved &&
+                          approvedDate && (
+                            <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                              ✅ Opublikowano:{" "}
+                              <strong>
+                                {approvedDate}
+                              </strong>
+                            </div>
+                          )}
+
+                        {!isApproved && (
+                          <div className="mt-5 rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-6 text-yellow-900">
+                            ⏳ To ogłoszenie zobaczysz na
+                            swoim koncie, ale pozostali
+                            użytkownicy zobaczą je dopiero
+                            po akceptacji administratora.
+                          </div>
+                        )}
 
                         {(promotedActive ||
                           urgentActive ||
@@ -543,12 +652,18 @@ export default function MyAdvertisementsPage() {
                             Edytuj
                           </Link>
 
-                          <Link
-                            href={`/promuj-ogloszenie/${advertisement.id}`}
-                            className="rounded-xl bg-yellow-400 px-4 py-2.5 font-bold text-slate-900 hover:bg-yellow-500"
-                          >
-                            ⭐ Promuj
-                          </Link>
+                          {isApproved ? (
+                            <Link
+                              href={`/promuj-ogloszenie/${advertisement.id}`}
+                              className="rounded-xl bg-yellow-400 px-4 py-2.5 font-bold text-slate-900 hover:bg-yellow-500"
+                            >
+                              ⭐ Promuj
+                            </Link>
+                          ) : (
+                            <span className="cursor-not-allowed rounded-xl bg-slate-200 px-4 py-2.5 font-bold text-slate-500">
+                              ⭐ Promocja po publikacji
+                            </span>
+                          )}
 
                           <button
                             type="button"
