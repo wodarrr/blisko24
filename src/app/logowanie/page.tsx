@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { signIn } from "../../lib/auth";
+import { signIn, signUp, type AccountType } from "../../lib/auth";
 import { supabase } from "../../lib/supabase";
 
 const TERMS_VERSION = "2026-08-02";
@@ -16,25 +16,20 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [acceptTerms, setAcceptTerms] =
-    useState(false);
+  const [accountType, setAccountType] = useState<AccountType>("candidate");
 
-  const [confirmPrivacy, setConfirmPrivacy] =
-    useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
-  const [loggingIn, setLoggingIn] =
-    useState(false);
+  const [confirmPrivacy, setConfirmPrivacy] = useState(false);
 
-  const [registering, setRegistering] =
-    useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
 
-  const [sendingReset, setSendingReset] =
-    useState(false);
+  const [registering, setRegistering] = useState(false);
+
+  const [sendingReset, setSendingReset] = useState(false);
 
   async function handleLogin() {
-    const normalizedEmail = email
-      .trim()
-      .toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedEmail || !password) {
       alert("Wpisz e-mail i hasło.");
@@ -45,10 +40,7 @@ export default function LoginPage() {
 
     setLoggingIn(true);
 
-    const { error: loginError } = await signIn(
-      normalizedEmail,
-      password
-    );
+    const { error: loginError } = await signIn(normalizedEmail, password);
 
     if (loginError) {
       setLoggingIn(false);
@@ -62,46 +54,31 @@ export default function LoginPage() {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      console.error(
-        "Błąd pobierania użytkownika:",
-        userError
-      );
+      console.error("Błąd pobierania użytkownika:", userError);
 
       await supabase.auth.signOut();
 
       setLoggingIn(false);
 
-      alert(
-        "Nie udało się sprawdzić danych konta. Spróbuj ponownie."
-      );
+      alert("Nie udało się sprawdzić danych konta. Spróbuj ponownie.");
 
       return;
     }
 
-    const {
-      data: profile,
-      error: profileError,
-    } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select(
-        "blocked, blocked_reason, blocked_at"
-      )
+      .select("blocked, blocked_reason, blocked_at")
       .eq("id", user.id)
       .maybeSingle();
 
     if (profileError) {
-      console.error(
-        "Błąd sprawdzania blokady konta:",
-        profileError
-      );
+      console.error("Błąd sprawdzania blokady konta:", profileError);
 
       await supabase.auth.signOut();
 
       setLoggingIn(false);
 
-      alert(
-        "Nie udało się sprawdzić statusu konta. Spróbuj ponownie."
-      );
+      alert("Nie udało się sprawdzić statusu konta. Spróbuj ponownie.");
 
       return;
     }
@@ -111,13 +88,12 @@ export default function LoginPage() {
 
       setLoggingIn(false);
 
-      const reason =
-        profile.blocked_reason?.trim();
+      const reason = profile.blocked_reason?.trim();
 
       alert(
         reason
           ? `Twoje konto zostało zablokowane.\n\nPowód: ${reason}`
-          : "Twoje konto zostało zablokowane. Skontaktuj się z administratorem BLISKO24."
+          : "Twoje konto zostało zablokowane. Skontaktuj się z administratorem BLISKO24.",
       );
 
       return;
@@ -130,33 +106,22 @@ export default function LoginPage() {
   }
 
   async function handleRegister() {
-    const normalizedEmail = email
-      .trim()
-      .toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
 
-    if (
-      !normalizedEmail ||
-      password.length < 8
-    ) {
-      alert(
-        "Wpisz poprawny e-mail i hasło mające minimum 8 znaków."
-      );
+    if (!normalizedEmail || password.length < 8) {
+      alert("Wpisz poprawny e-mail i hasło mające minimum 8 znaków.");
 
       return;
     }
 
     if (!acceptTerms) {
-      alert(
-        "Aby utworzyć konto, zaakceptuj Regulamin BLISKO24."
-      );
+      alert("Aby utworzyć konto, zaakceptuj Regulamin BLISKO24.");
 
       return;
     }
 
     if (!confirmPrivacy) {
-      alert(
-        "Potwierdź zapoznanie się z Polityką prywatności."
-      );
+      alert("Potwierdź zapoznanie się z Polityką prywatności.");
 
       return;
     }
@@ -165,39 +130,20 @@ export default function LoginPage() {
 
     setRegistering(true);
 
-    const acceptedAt =
-      new Date().toISOString();
+    const acceptedAt = new Date().toISOString();
 
-    const { error } =
-      await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: {
-          emailRedirectTo:
-            `${window.location.origin}/`,
-          data: {
-            terms_accepted: true,
-            terms_version:
-              TERMS_VERSION,
-            terms_accepted_at:
-              acceptedAt,
-
-            privacy_acknowledged: true,
-            privacy_version:
-              PRIVACY_VERSION,
-            privacy_acknowledged_at:
-              acceptedAt,
-          },
-        },
-      });
+    const { error } = await signUp(normalizedEmail, password, {
+      accountType,
+      emailRedirectTo: `${window.location.origin}/`,
+      termsVersion: TERMS_VERSION,
+      privacyVersion: PRIVACY_VERSION,
+      acceptedAt,
+    });
 
     setRegistering(false);
 
     if (error) {
-      console.error(
-        "Błąd rejestracji:",
-        error
-      );
+      console.error("Błąd rejestracji:", error);
 
       alert(error.message);
       return;
@@ -207,69 +153,52 @@ export default function LoginPage() {
     setConfirmPrivacy(false);
 
     alert(
-      "Konto zostało utworzone. Sprawdź swoją skrzynkę e-mail, jeżeli wymagane jest potwierdzenie adresu."
+      "Konto zostało utworzone. Sprawdź swoją skrzynkę e-mail, jeżeli wymagane jest potwierdzenie adresu.",
     );
   }
 
   async function handlePasswordReset() {
-    const normalizedEmail = email
-      .trim()
-      .toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedEmail) {
-      alert(
-        "Najpierw wpisz adres e-mail swojego konta."
-      );
+      alert("Najpierw wpisz adres e-mail swojego konta.");
 
       return;
     }
 
     setSendingReset(true);
 
-    const { error } =
-      await supabase.auth.resetPasswordForEmail(
-        normalizedEmail,
-        {
-          redirectTo:
-            `${window.location.origin}/reset-hasla`,
-        }
-      );
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      normalizedEmail,
+      {
+        redirectTo: `${window.location.origin}/reset-hasla`,
+      },
+    );
 
     setSendingReset(false);
 
     if (error) {
-      console.error(
-        "Błąd resetowania hasła:",
-        error
-      );
+      console.error("Błąd resetowania hasła:", error);
 
       alert(error.message);
       return;
     }
 
-    alert(
-      "Wysłaliśmy wiadomość. Otwórz link z e-maila i ustaw nowe hasło."
-    );
+    alert("Wysłaliśmy wiadomość. Otwórz link z e-maila i ustaw nowe hasło.");
   }
 
-  function handleKeyDown(
-    event: React.KeyboardEvent<HTMLInputElement>
-  ) {
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") {
       event.preventDefault();
       handleLogin();
     }
   }
 
-  const formBusy =
-    loggingIn ||
-    registering ||
-    sendingReset;
+  const formBusy = loggingIn || registering || sendingReset;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-10 sm:px-6">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-lg sm:p-8">
-
+      <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-lg sm:p-8">
         <div className="text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-700 text-3xl font-extrabold text-white shadow">
             B
@@ -280,8 +209,7 @@ export default function LoginPage() {
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">
-            Zaloguj się albo utwórz konto
-            BLISKO24.
+            Zaloguj się albo utwórz konto BLISKO24.
           </p>
         </div>
 
@@ -300,9 +228,7 @@ export default function LoginPage() {
             placeholder="twoj@email.pl"
             value={email}
             disabled={formBusy}
-            onChange={(event) =>
-              setEmail(event.target.value)
-            }
+            onChange={(event) => setEmail(event.target.value)}
             onKeyDown={handleKeyDown}
             className="w-full rounded-xl border border-slate-300 p-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
           />
@@ -323,9 +249,7 @@ export default function LoginPage() {
             placeholder="Minimum 8 znaków"
             value={password}
             disabled={formBusy}
-            onChange={(event) =>
-              setPassword(event.target.value)
-            }
+            onChange={(event) => setPassword(event.target.value)}
             onKeyDown={handleKeyDown}
             className="w-full rounded-xl border border-slate-300 p-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
           />
@@ -337,9 +261,7 @@ export default function LoginPage() {
           disabled={formBusy}
           className="mt-7 w-full rounded-xl bg-blue-700 py-3.5 font-bold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loggingIn
-            ? "Sprawdzanie konta..."
-            : "Zaloguj się"}
+          {loggingIn ? "Sprawdzanie konta..." : "Zaloguj się"}
         </button>
 
         <div className="my-7 flex items-center gap-4">
@@ -352,17 +274,71 @@ export default function LoginPage() {
           <div className="h-px flex-1 bg-slate-200" />
         </div>
 
+        <section className="mb-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 sm:p-5">
+          <p className="font-extrabold text-slate-900">
+            Jak chcesz korzystać z BLISKO24? *
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Wybór możesz później zmienić w ustawieniach profilu.
+          </p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {[
+              {
+                value: "candidate" as AccountType,
+                icon: "👤",
+                title: "Szukam pracy",
+              },
+              {
+                value: "employer" as AccountType,
+                icon: "🏢",
+                title: "Szukam pracownika",
+              },
+              {
+                value: "both" as AccountType,
+                icon: "🤝",
+                title: "Obie opcje",
+              },
+            ].map((option) => {
+              const selected = accountType === option.value;
+
+              return (
+                <label
+                  key={option.value}
+                  className={`cursor-pointer rounded-xl border p-4 text-center transition ${
+                    selected
+                      ? "border-blue-600 bg-white shadow-sm ring-2 ring-blue-200"
+                      : "border-blue-200 bg-blue-50 hover:bg-white"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="registration_account_type"
+                    value={option.value}
+                    checked={selected}
+                    disabled={formBusy}
+                    onChange={() => setAccountType(option.value)}
+                    className="sr-only"
+                  />
+
+                  <span className="block text-2xl">{option.icon}</span>
+                  <span className="mt-2 block text-sm font-extrabold text-slate-900">
+                    {option.title}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </section>
+
         <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
               checked={acceptTerms}
               disabled={formBusy}
-              onChange={(event) =>
-                setAcceptTerms(
-                  event.target.checked
-                )
-              }
+              onChange={(event) => setAcceptTerms(event.target.checked)}
               className="mt-1 h-5 w-5 shrink-0 accent-blue-700"
             />
 
@@ -384,17 +360,12 @@ export default function LoginPage() {
               type="checkbox"
               checked={confirmPrivacy}
               disabled={formBusy}
-              onChange={(event) =>
-                setConfirmPrivacy(
-                  event.target.checked
-                )
-              }
+              onChange={(event) => setConfirmPrivacy(event.target.checked)}
               className="mt-1 h-5 w-5 shrink-0 accent-blue-700"
             />
 
             <span className="text-sm leading-6 text-slate-700">
-              Potwierdzam, że zapoznałem się
-              z{" "}
+              Potwierdzam, że zapoznałem się z{" "}
               <Link
                 href="/polityka-prywatnosci"
                 target="_blank"
@@ -407,8 +378,7 @@ export default function LoginPage() {
           </label>
 
           <p className="text-xs leading-5 text-slate-500">
-            Pola oznaczone gwiazdką są wymagane
-            do utworzenia konta.
+            Pola oznaczone gwiazdką są wymagane do utworzenia konta.
           </p>
         </div>
 
@@ -418,9 +388,7 @@ export default function LoginPage() {
           disabled={formBusy}
           className="mt-4 w-full rounded-xl bg-green-600 py-3.5 font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {registering
-            ? "Tworzenie konta..."
-            : "Załóż bezpłatne konto"}
+          {registering ? "Tworzenie konta..." : "Załóż bezpłatne konto"}
         </button>
 
         <button
@@ -429,11 +397,8 @@ export default function LoginPage() {
           disabled={formBusy}
           className="mt-5 w-full text-sm font-semibold text-blue-700 hover:underline disabled:opacity-50"
         >
-          {sendingReset
-            ? "Wysyłanie wiadomości..."
-            : "Nie pamiętam hasła"}
+          {sendingReset ? "Wysyłanie wiadomości..." : "Nie pamiętam hasła"}
         </button>
-
       </div>
     </main>
   );

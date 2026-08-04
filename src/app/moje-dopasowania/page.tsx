@@ -61,6 +61,13 @@ type UnlockRequestResult = {
   unlock_status: UnlockStatus;
 };
 
+type PlatformSettings = {
+  free_contact_unlocks_enabled: boolean;
+  payments_enabled: boolean;
+  free_period_started_at: string | null;
+  free_period_ends_at: string | null;
+};
+
 export default function MyMatchesPage() {
   const router = useRouter();
 
@@ -70,6 +77,8 @@ export default function MyMatchesPage() {
 
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [accessDenied, setAccessDenied] = useState(false);
+
   const [unlockStatuses, setUnlockStatuses] = useState<
     Record<string, UnlockStatus>
   >({});
@@ -77,6 +86,9 @@ export default function MyMatchesPage() {
   const [contacts, setContacts] = useState<Record<number, ContactData>>({});
 
   const [unlockingMatchId, setUnlockingMatchId] = useState<number | null>(null);
+
+  const [platformSettings, setPlatformSettings] =
+    useState<PlatformSettings | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +104,44 @@ export default function MyMatchesPage() {
       if (userError || !user) {
         router.replace("/logowanie");
         return;
+      }
+
+      const { data: accessProfile, error: accessError } = await supabase
+        .from("profiles")
+        .select("account_type")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (
+        accessError ||
+        (accessProfile?.account_type !== "employer" &&
+          accessProfile?.account_type !== "both")
+      ) {
+        if (accessError) {
+          console.error("Błąd sprawdzania typu konta:", accessError);
+        }
+
+        setAccessDenied(true);
+        setLoading(false);
+        return;
+      }
+
+      const { data: settingsData, error: settingsError } = await supabase
+        .from("platform_settings")
+        .select(
+          "free_contact_unlocks_enabled, payments_enabled, free_period_started_at, free_period_ends_at",
+        )
+        .eq("id", 1)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (settingsError) {
+        console.error("Błąd pobierania ustawień platformy:", settingsError);
+      } else if (settingsData) {
+        setPlatformSettings(settingsData as PlatformSettings);
       }
 
       const { data, error } = await supabase
@@ -304,6 +354,14 @@ export default function MyMatchesPage() {
       return;
     }
 
+    if (!platformSettings?.payments_enabled) {
+      setUnlockingMatchId(null);
+      window.alert(
+        "Nie udało się bezpłatnie odblokować kontaktu. Odśwież stronę i spróbuj ponownie.",
+      );
+      return;
+    }
+
     const {
       data: { session },
       error: sessionError,
@@ -357,6 +415,62 @@ export default function MyMatchesPage() {
     );
   }
 
+  if (accessDenied) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-10">
+        <section className="w-full max-w-2xl rounded-3xl border border-amber-200 bg-white p-7 text-center shadow-xl sm:p-10">
+          <div className="text-6xl">🎯</div>
+
+          <p className="mt-5 text-sm font-extrabold uppercase tracking-[0.18em] text-amber-700">
+            Moduł pracodawcy
+          </p>
+
+          <h1 className="mt-3 text-3xl font-extrabold text-slate-900">
+            Dopasowania są dostępne dla pracodawców
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-xl leading-7 text-slate-600">
+            Twoje konto jest obecnie kontem kandydata. Aby tworzyć alerty i
+            przeglądać dopasowanych kandydatów, wybierz „Obie opcje” w
+            ustawieniach profilu.
+          </p>
+
+          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              href="/ustawienia/profil"
+              className="rounded-xl bg-blue-700 px-6 py-3.5 font-bold text-white hover:bg-blue-800"
+            >
+              Zmień typ konta
+            </Link>
+
+            <Link
+              href="/"
+              className="rounded-xl border border-slate-300 bg-white px-6 py-3.5 font-bold text-slate-700 hover:bg-slate-50"
+            >
+              Wróć na stronę główną
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  const now = Date.now();
+
+  const freePeriodStartedAt = platformSettings?.free_period_started_at
+    ? new Date(platformSettings.free_period_started_at).getTime()
+    : null;
+
+  const freePeriodEndsAt = platformSettings?.free_period_ends_at
+    ? new Date(platformSettings.free_period_ends_at).getTime()
+    : null;
+
+  const freeContactUnlocksActive = Boolean(
+    platformSettings?.free_contact_unlocks_enabled &&
+      (freePeriodStartedAt === null || now >= freePeriodStartedAt) &&
+      (freePeriodEndsAt === null || now < freePeriodEndsAt),
+  );
+
   return (
     <main className="min-h-screen bg-gray-100 py-8 sm:py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -373,6 +487,32 @@ export default function MyMatchesPage() {
             Kandydaci znalezieni automatycznie na podstawie zapisanych alertów.
           </p>
         </section>
+
+        {freeContactUnlocksActive && (
+          <section className="mt-6 rounded-3xl border border-green-300 bg-green-50 p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-extrabold uppercase tracking-[0.16em] text-green-700">
+                  Darmowy start BLISKO24
+                </p>
+
+                <h2 className="mt-2 text-xl font-extrabold text-green-950 sm:text-2xl">
+                  Kontakty odblokujesz teraz bezpłatnie
+                </h2>
+
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-green-800 sm:text-base">
+                  Kontakt zostanie pokazany wyłącznie wtedy, gdy kandydat
+                  wyraził zgodę na jego udostępnienie. Każde odblokowanie
+                  zapisujemy, aby rozwijać trafniejsze dopasowania.
+                </p>
+              </div>
+
+              <div className="w-fit shrink-0 rounded-full bg-green-700 px-5 py-2.5 font-extrabold text-white">
+                0 zł
+              </div>
+            </div>
+          </section>
+        )}
 
         {errorMessage && (
           <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-5 font-semibold text-red-700">
@@ -688,12 +828,14 @@ export default function MyMatchesPage() {
                       className="flex min-h-14 items-center justify-center rounded-xl bg-blue-700 px-5 py-3 text-center font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {unlockingMatchId === match.id
-                        ? "Zapisywanie..."
+                        ? "Odblokowywanie..."
                         : unlockStatus === "unlocked"
                           ? "🔓 Kontakt odblokowany"
-                          : unlockStatus === "pending"
-                            ? "💳 Zapłać 9,99 zł"
-                            : "🔒 Odblokuj kontakt – 9,99 zł"}
+                          : freeContactUnlocksActive
+                            ? "🔓 Odblokuj bezpłatnie"
+                            : unlockStatus === "pending"
+                              ? "💳 Zapłać 9,99 zł"
+                              : "🔒 Odblokuj kontakt – 9,99 zł"}
                     </button>
                   </div>
 

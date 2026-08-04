@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { supabase } from "../../lib/supabase";
 
@@ -42,11 +43,7 @@ const skillOptions = [
   "Praca zmianowa",
 ];
 
-const workModeOptions = [
-  "Stacjonarna",
-  "Hybrydowa",
-  "Zdalna",
-];
+const workModeOptions = ["Stacjonarna", "Hybrydowa", "Zdalna"];
 
 type Candidate = {
   id: string;
@@ -70,14 +67,11 @@ type Candidate = {
   match_score?: number;
 };
 
-
 function normalizeText(value?: string | null) {
   return value?.trim().toLowerCase() ?? "";
 }
 
-function wasActiveRecently(
-  value?: string | null
-) {
+function wasActiveRecently(value?: string | null) {
   if (!value) return false;
 
   const date = new Date(value);
@@ -86,23 +80,15 @@ function wasActiveRecently(
     return false;
   }
 
-  return (
-    Date.now() - date.getTime() <=
-    7 * 24 * 60 * 60 * 1000
-  );
+  return Date.now() - date.getTime() <= 7 * 24 * 60 * 60 * 1000;
 }
 
-function calculateBliskoScore(
-  candidate: Candidate
-) {
+function calculateBliskoScore(candidate: Candidate) {
   let score = 0;
 
   if (candidate.avatar_url) score += 10;
 
-  if (
-    (candidate.description?.trim().length ??
-      0) >= 40
-  ) {
+  if ((candidate.description?.trim().length ?? 0) >= 40) {
     score += 10;
   }
 
@@ -110,17 +96,13 @@ function calculateBliskoScore(
     score += 10;
   }
 
-  if (
-    (candidate.candidate_skills?.length ??
-      0) >= 3
-  ) {
+  if ((candidate.candidate_skills?.length ?? 0) >= 3) {
     score += 15;
   }
 
   if (
     candidate.years_of_experience !== null &&
-    candidate.years_of_experience !==
-      undefined
+    candidate.years_of_experience !== undefined
   ) {
     score += 10;
   }
@@ -133,9 +115,7 @@ function calculateBliskoScore(
     score += 10;
   }
 
-  if (
-    (candidate.work_modes?.length ?? 0) > 0
-  ) {
+  if ((candidate.work_modes?.length ?? 0) > 0) {
     score += 5;
   }
 
@@ -147,9 +127,7 @@ function calculateBliskoScore(
     score += 5;
   }
 
-  if (
-    candidate.contact_sharing_consent
-  ) {
+  if (candidate.contact_sharing_consent) {
     score += 5;
   }
 
@@ -157,11 +135,7 @@ function calculateBliskoScore(
     score += 5;
   }
 
-  if (
-    wasActiveRecently(
-      candidate.last_seen
-    )
-  ) {
+  if (wasActiveRecently(candidate.last_seen)) {
     score += 5;
   }
 
@@ -183,94 +157,64 @@ function calculateMatchScore(
     optionalSkills: string[];
     workModes: string[];
     openOnly: boolean;
-  }
+  },
 ) {
   const checks: boolean[] = [];
 
   if (filters.role.trim()) {
-    const expected = normalizeText(
-      filters.role
-    );
+    const expected = normalizeText(filters.role);
 
-    const actual = normalizeText(
-      candidate.candidate_role
-    );
+    const actual = normalizeText(candidate.candidate_role);
 
-    checks.push(
-      actual.includes(expected) ||
-        expected.includes(actual)
-    );
+    checks.push(actual.includes(expected) || expected.includes(actual));
   }
 
   if (filters.province) {
     checks.push(
-      normalizeText(
-        candidate.preferred_province
-      ) === normalizeText(filters.province)
+      normalizeText(candidate.preferred_province) ===
+        normalizeText(filters.province),
     );
   }
 
   if (filters.city.trim()) {
     checks.push(
-      normalizeText(
-        candidate.preferred_city
-      ).includes(
-        normalizeText(filters.city)
-      )
+      normalizeText(candidate.preferred_city).includes(
+        normalizeText(filters.city),
+      ),
     );
   }
 
-  if (
-    filters.minExperience !== null
-  ) {
-    checks.push(
-      (candidate.years_of_experience ??
-        0) >= filters.minExperience
-    );
+  if (filters.minExperience !== null) {
+    checks.push((candidate.years_of_experience ?? 0) >= filters.minExperience);
   }
 
-  const candidateSkills =
-    candidate.candidate_skills ?? [];
+  const candidateSkills = candidate.candidate_skills ?? [];
 
   filters.requiredSkills.forEach((skill) => {
-    checks.push(
-      candidateSkills.includes(skill)
-    );
+    checks.push(candidateSkills.includes(skill));
   });
 
   filters.optionalSkills.forEach((skill) => {
-    checks.push(
-      candidateSkills.includes(skill)
-    );
+    checks.push(candidateSkills.includes(skill));
   });
 
-  const candidateModes =
-    candidate.work_modes ?? [];
+  const candidateModes = candidate.work_modes ?? [];
 
   filters.workModes.forEach((mode) => {
-    checks.push(
-      candidateModes.includes(mode)
-    );
+    checks.push(candidateModes.includes(mode));
   });
 
   if (filters.openOnly) {
-    checks.push(
-      candidate.open_to_job_offers ===
-        true
-    );
+    checks.push(candidate.open_to_job_offers === true);
   }
 
   if (checks.length === 0) {
     return 100;
   }
 
-  const matchedCount = checks.filter(
-    Boolean
-  ).length;
+  const matchedCount = checks.filter(Boolean).length;
 
-  return Math.round(
-    (matchedCount / checks.length) * 100
-  );
+  return Math.round((matchedCount / checks.length) * 100);
 }
 
 function getMatchReasons(
@@ -284,7 +228,7 @@ function getMatchReasons(
     optionalSkills: string[];
     workModes: string[];
     openOnly: boolean;
-  }
+  },
 ) {
   const reasons: {
     label: string;
@@ -293,15 +237,11 @@ function getMatchReasons(
 
   if (filters.role.trim()) {
     const expected = normalizeText(filters.role);
-    const actual = normalizeText(
-      candidate.candidate_role
-    );
+    const actual = normalizeText(candidate.candidate_role);
 
     reasons.push({
       label: "Stanowisko",
-      matched:
-        actual.includes(expected) ||
-        expected.includes(actual),
+      matched: actual.includes(expected) || expected.includes(actual),
     });
   }
 
@@ -309,63 +249,52 @@ function getMatchReasons(
     reasons.push({
       label: "Województwo",
       matched:
-        normalizeText(
-          candidate.preferred_province
-        ) === normalizeText(filters.province),
+        normalizeText(candidate.preferred_province) ===
+        normalizeText(filters.province),
     });
   }
 
   if (filters.city.trim()) {
     reasons.push({
       label: "Miasto",
-      matched: normalizeText(
-        candidate.preferred_city
-      ).includes(normalizeText(filters.city)),
+      matched: normalizeText(candidate.preferred_city).includes(
+        normalizeText(filters.city),
+      ),
     });
   }
 
   if (filters.minExperience !== null) {
     reasons.push({
       label: `Minimum ${filters.minExperience} lat doświadczenia`,
-      matched:
-        (candidate.years_of_experience ??
-          0) >= filters.minExperience,
+      matched: (candidate.years_of_experience ?? 0) >= filters.minExperience,
     });
   }
 
-  if (
-    filters.requiredSkills.length > 0 ||
-    filters.optionalSkills.length > 0
-  ) {
-    const candidateSkills =
-      candidate.candidate_skills ?? [];
+  if (filters.requiredSkills.length > 0 || filters.optionalSkills.length > 0) {
+    const candidateSkills = candidate.candidate_skills ?? [];
 
     filters.requiredSkills.forEach((skill) => {
       reasons.push({
         label: `${skill} — wymagane`,
-        matched:
-          candidateSkills.includes(skill),
+        matched: candidateSkills.includes(skill),
       });
     });
 
     filters.optionalSkills.forEach((skill) => {
       reasons.push({
         label: `${skill} — dodatkowy atut`,
-        matched:
-          candidateSkills.includes(skill),
+        matched: candidateSkills.includes(skill),
       });
     });
   }
 
   if (filters.workModes.length > 0) {
-    const candidateModes =
-      candidate.work_modes ?? [];
+    const candidateModes = candidate.work_modes ?? [];
 
     filters.workModes.forEach((mode) => {
       reasons.push({
         label: `Praca ${mode.toLowerCase()}`,
-        matched:
-          candidateModes.includes(mode),
+        matched: candidateModes.includes(mode),
       });
     });
   }
@@ -373,8 +302,7 @@ function getMatchReasons(
   if (filters.openOnly) {
     reasons.push({
       label: "Otwarty na propozycje",
-      matched:
-        candidate.open_to_job_offers === true,
+      matched: candidate.open_to_job_offers === true,
     });
   }
 
@@ -385,129 +313,148 @@ function getScoreBadge(score: number) {
   if (score >= 100) {
     return {
       label: "💎 Premium",
-      className:
-        "bg-cyan-100 text-cyan-900",
+      className: "bg-cyan-100 text-cyan-900",
     };
   }
 
   if (score >= 90) {
     return {
       label: "🥇 Złoty",
-      className:
-        "bg-yellow-100 text-yellow-900",
+      className: "bg-yellow-100 text-yellow-900",
     };
   }
 
   if (score >= 75) {
     return {
       label: "🥈 Srebrny",
-      className:
-        "bg-slate-200 text-slate-800",
+      className: "bg-slate-200 text-slate-800",
     };
   }
 
   if (score >= 50) {
     return {
       label: "🥉 Brązowy",
-      className:
-        "bg-orange-100 text-orange-900",
+      className: "bg-orange-100 text-orange-900",
     };
   }
 
   return {
     label: "🌱 Podstawowy",
-    className:
-      "bg-green-100 text-green-900",
+    className: "bg-green-100 text-green-900",
   };
 }
 
 export default function FindCandidatePage() {
+  const router = useRouter();
+
+  const [accessStatus, setAccessStatus] = useState<
+    "loading" | "allowed" | "forbidden"
+  >("loading");
+
   const [role, setRole] = useState("");
   const [province, setProvince] = useState("");
   const [city, setCity] = useState("");
-  const [minExperience, setMinExperience] =
-    useState("");
-  const [requiredSkills, setRequiredSkills] =
-    useState<string[]>([]);
+  const [minExperience, setMinExperience] = useState("");
+  const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
 
-  const [optionalSkills, setOptionalSkills] =
-    useState<string[]>([]);
-  const [selectedWorkModes, setSelectedWorkModes] =
-    useState<string[]>([]);
+  const [optionalSkills, setOptionalSkills] = useState<string[]>([]);
+  const [selectedWorkModes, setSelectedWorkModes] = useState<string[]>([]);
   const [openOnly, setOpenOnly] = useState(true);
 
-  const [candidates, setCandidates] =
-    useState<Candidate[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] =
-    useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const [showAlertForm, setShowAlertForm] =
-    useState(false);
+  const [showAlertForm, setShowAlertForm] = useState(false);
 
-  const [savingAlert, setSavingAlert] =
-    useState(false);
+  const [savingAlert, setSavingAlert] = useState(false);
 
-  const [alertSaved, setAlertSaved] =
-    useState(false);
+  const [alertSaved, setAlertSaved] = useState(false);
 
-  const [employerData, setEmployerData] =
-    useState({
-      companyName: "",
-      contactName: "",
-      contactEmail: "",
-      contactPhone: "",
-    });
+  const [employerData, setEmployerData] = useState({
+    companyName: "",
+    contactName: "",
+    contactEmail: "",
+    contactPhone: "",
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkAccess() {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (cancelled) return;
+
+      if (userError || !user) {
+        router.replace("/logowanie");
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("account_type")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (profileError) {
+        console.error("Błąd sprawdzania typu konta:", profileError);
+        setAccessStatus("forbidden");
+        return;
+      }
+
+      setAccessStatus(
+        profile?.account_type === "employer" || profile?.account_type === "both"
+          ? "allowed"
+          : "forbidden",
+      );
+    }
+
+    void checkAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   function toggleValue(
     value: string,
     current: string[],
-    setter: React.Dispatch<
-      React.SetStateAction<string[]>
-    >
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
   ) {
     setter(
       current.includes(value)
         ? current.filter((item) => item !== value)
-        : [...current, value]
+        : [...current, value],
     );
   }
 
   function cycleSkillState(skill: string) {
-    const isOptional =
-      optionalSkills.includes(skill);
+    const isOptional = optionalSkills.includes(skill);
 
-    const isRequired =
-      requiredSkills.includes(skill);
+    const isRequired = requiredSkills.includes(skill);
 
     if (!isOptional && !isRequired) {
-      setOptionalSkills((previous) => [
-        ...previous,
-        skill,
-      ]);
+      setOptionalSkills((previous) => [...previous, skill]);
       return;
     }
 
     if (isOptional) {
       setOptionalSkills((previous) =>
-        previous.filter(
-          (item) => item !== skill
-        )
+        previous.filter((item) => item !== skill),
       );
 
-      setRequiredSkills((previous) => [
-        ...previous,
-        skill,
-      ]);
+      setRequiredSkills((previous) => [...previous, skill]);
       return;
     }
 
-    setRequiredSkills((previous) =>
-      previous.filter(
-        (item) => item !== skill
-      )
-    );
+    setRequiredSkills((previous) => previous.filter((item) => item !== skill));
   }
 
   const numericExperience = useMemo(() => {
@@ -515,9 +462,7 @@ export default function FindCandidatePage() {
 
     const parsed = Number(minExperience);
 
-    return Number.isFinite(parsed)
-      ? parsed
-      : null;
+    return Number.isFinite(parsed) ? parsed : null;
   }, [minExperience]);
 
   async function searchCandidates() {
@@ -526,7 +471,8 @@ export default function FindCandidatePage() {
 
     let query = supabase
       .from("profiles")
-      .select(`
+      .select(
+        `
         id,
         name,
         city,
@@ -543,27 +489,20 @@ export default function FindCandidatePage() {
         years_of_experience,
         open_to_job_offers,
         last_seen
-      `);
+      `,
+      )
+      .in("account_type", ["candidate", "both"]);
 
     if (openOnly) {
-      query = query.eq(
-        "open_to_job_offers",
-        true
-      );
+      query = query.eq("open_to_job_offers", true);
     }
 
     if (role.trim()) {
-      query = query.ilike(
-        "candidate_role",
-        `%${role.trim()}%`
-      );
+      query = query.ilike("candidate_role", `%${role.trim()}%`);
     }
 
     if (province) {
-      query = query.eq(
-        "preferred_province",
-        province
-      );
+      query = query.eq("preferred_province", province);
     }
 
     // Miasto i doświadczenie wpływają na procent
@@ -584,121 +523,84 @@ export default function FindCandidatePage() {
     setSearched(true);
 
     if (error) {
-      console.error(
-        "Błąd wyszukiwania kandydatów:",
-        error
-      );
+      console.error("Błąd wyszukiwania kandydatów:", error);
 
-      setErrorMessage(
-        "Nie udało się wyszukać kandydatów."
-      );
+      setErrorMessage("Nie udało się wyszukać kandydatów.");
 
       setCandidates([]);
       return;
     }
 
-    let filtered =
-      (data ?? []) as Candidate[];
+    let filtered = (data ?? []) as Candidate[];
 
     if (requiredSkills.length > 0) {
-      filtered = filtered.filter(
-        (candidate) => {
-          const candidateSkills =
-            candidate.candidate_skills ?? [];
+      filtered = filtered.filter((candidate) => {
+        const candidateSkills = candidate.candidate_skills ?? [];
 
-          return requiredSkills.every(
-            (skill) =>
-              candidateSkills.includes(skill)
-          );
-        }
-      );
+        return requiredSkills.every((skill) => candidateSkills.includes(skill));
+      });
     }
 
     // Umiejętności dodatkowe i forma pracy
     // wpływają na procent dopasowania,
     // ale nie usuwają kandydatów z wyników.
 
-    const candidateIds = filtered.map(
-      (candidate) => candidate.id
-    );
+    const candidateIds = filtered.map((candidate) => candidate.id);
 
-    const adsCount = new Map<
-      string,
-      number
-    >();
+    const adsCount = new Map<string, number>();
 
     if (candidateIds.length > 0) {
-      const {
-        data: advertisementsData,
-        error: advertisementsError,
-      } = await supabase
-        .from("advertisements")
-        .select("user_id")
-        .eq("status", "approved")
-        .in("user_id", candidateIds);
+      const { data: advertisementsData, error: advertisementsError } =
+        await supabase
+          .from("advertisements")
+          .select("user_id")
+          .eq("status", "approved")
+          .in("user_id", candidateIds);
 
       if (advertisementsError) {
         console.error(
           "Błąd pobierania liczby ogłoszeń kandydatów:",
-          advertisementsError
+          advertisementsError,
         );
       }
 
-      (advertisementsData ?? []).forEach(
-        (advertisement) => {
-          if (!advertisement.user_id) return;
+      (advertisementsData ?? []).forEach((advertisement) => {
+        if (!advertisement.user_id) return;
 
-          adsCount.set(
-            advertisement.user_id,
-            (adsCount.get(
-              advertisement.user_id
-            ) ?? 0) + 1
-          );
-        }
-      );
+        adsCount.set(
+          advertisement.user_id,
+          (adsCount.get(advertisement.user_id) ?? 0) + 1,
+        );
+      });
     }
 
-    const preparedCandidates =
-      filtered
-        .map((candidate) => {
-          const candidateWithAds = {
-            ...candidate,
-            active_ads:
-              adsCount.get(candidate.id) ??
-              0,
-          };
+    const preparedCandidates = filtered
+      .map((candidate) => {
+        const candidateWithAds = {
+          ...candidate,
+          active_ads: adsCount.get(candidate.id) ?? 0,
+        };
 
-          return {
-            ...candidateWithAds,
-            blisko_score:
-              calculateBliskoScore(
-                candidateWithAds
-              ),
-            match_score:
-              calculateMatchScore(
-                candidateWithAds,
-                {
-                  role,
-                  province,
-                  city,
-                  minExperience:
-                    numericExperience,
-                  requiredSkills,
-                  optionalSkills,
-                  workModes:
-                    selectedWorkModes,
-                  openOnly,
-                }
-              ),
-          };
-        })
-        .sort(
-          (first, second) =>
-            (second.match_score ?? 0) -
-              (first.match_score ?? 0) ||
-            (second.blisko_score ?? 0) -
-              (first.blisko_score ?? 0)
-        );
+        return {
+          ...candidateWithAds,
+          blisko_score: calculateBliskoScore(candidateWithAds),
+          match_score: calculateMatchScore(candidateWithAds, {
+            role,
+            province,
+            city,
+            minExperience: numericExperience,
+            requiredSkills,
+            optionalSkills,
+            workModes: selectedWorkModes,
+            openOnly,
+          }),
+        };
+      })
+      .sort(
+        (first, second) =>
+          (second.match_score ?? 0) - (first.match_score ?? 0) ||
+          (second.blisko_score ?? 0) - (first.blisko_score ?? 0),
+      );
 
     setCandidates(preparedCandidates);
   }
@@ -713,41 +615,29 @@ export default function FindCandidatePage() {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      alert(
-        "Aby zapisać alert kandydata, musisz się zalogować."
-      );
+      alert("Aby zapisać alert kandydata, musisz się zalogować.");
       return;
     }
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select(
-        "name, company_name, phone"
-      )
+      .select("name, company_name, phone")
       .eq("id", user.id)
       .maybeSingle();
 
     setEmployerData({
-      companyName:
-        profile?.company_name ?? "",
-      contactName:
-        profile?.name ?? "",
-      contactEmail:
-        user.email ?? "",
-      contactPhone:
-        profile?.phone ?? "",
+      companyName: profile?.company_name ?? "",
+      contactName: profile?.name ?? "",
+      contactEmail: user.email ?? "",
+      contactPhone: profile?.phone ?? "",
     });
 
     setShowAlertForm(true);
   }
 
   function updateEmployerField(
-    field:
-      | "companyName"
-      | "contactName"
-      | "contactEmail"
-      | "contactPhone",
-    value: string
+    field: "companyName" | "contactName" | "contactEmail" | "contactPhone",
+    value: string,
   ) {
     setEmployerData((previous) => ({
       ...previous,
@@ -773,61 +663,38 @@ export default function FindCandidatePage() {
       return;
     }
 
-    if (
-      !employerData.companyName.trim() &&
-      !employerData.contactName.trim()
-    ) {
-      alert(
-        "Podaj nazwę firmy albo imię osoby kontaktowej."
-      );
+    if (!employerData.companyName.trim() && !employerData.contactName.trim()) {
+      alert("Podaj nazwę firmy albo imię osoby kontaktowej.");
       return;
     }
 
     setSavingAlert(true);
     setErrorMessage("");
 
-    const { error } = await supabase
-      .from("employer_alerts")
-      .insert({
-        user_id: user.id,
-        company_name:
-          employerData.companyName.trim() ||
-          null,
-        contact_name:
-          employerData.contactName.trim() ||
-          null,
-        contact_email:
-          employerData.contactEmail.trim(),
-        contact_phone:
-          employerData.contactPhone.trim() ||
-          null,
-        role: role.trim() || null,
-        province: province || null,
-        city: city.trim() || null,
-        min_experience:
-          numericExperience,
-        skills: [
-          ...requiredSkills,
-          ...optionalSkills,
-        ],
-        required_skills: requiredSkills,
-        optional_skills: optionalSkills,
-        work_modes: selectedWorkModes,
-        open_only: openOnly,
-        active: true,
-      });
+    const { error } = await supabase.from("employer_alerts").insert({
+      user_id: user.id,
+      company_name: employerData.companyName.trim() || null,
+      contact_name: employerData.contactName.trim() || null,
+      contact_email: employerData.contactEmail.trim(),
+      contact_phone: employerData.contactPhone.trim() || null,
+      role: role.trim() || null,
+      province: province || null,
+      city: city.trim() || null,
+      min_experience: numericExperience,
+      skills: [...requiredSkills, ...optionalSkills],
+      required_skills: requiredSkills,
+      optional_skills: optionalSkills,
+      work_modes: selectedWorkModes,
+      open_only: openOnly,
+      active: true,
+    });
 
     setSavingAlert(false);
 
     if (error) {
-      console.error(
-        "Błąd zapisywania alertu pracodawcy:",
-        error
-      );
+      console.error("Błąd zapisywania alertu pracodawcy:", error);
 
-      setErrorMessage(
-        "Nie udało się zapisać alertu."
-      );
+      setErrorMessage("Nie udało się zapisać alertu.");
       return;
     }
 
@@ -835,7 +702,57 @@ export default function FindCandidatePage() {
     setShowAlertForm(false);
 
     alert(
-      "Alert został zapisany. Powiadomienia o nowych pasujących kandydatach dodamy w kolejnym etapie."
+      "Alert został zapisany. Powiadomienia o nowych pasujących kandydatach dodamy w kolejnym etapie.",
+    );
+  }
+
+  if (accessStatus === "loading") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
+        <p className="text-lg font-semibold text-slate-700">
+          Sprawdzanie dostępu...
+        </p>
+      </main>
+    );
+  }
+
+  if (accessStatus === "forbidden") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4 py-10">
+        <section className="w-full max-w-2xl rounded-3xl border border-amber-200 bg-white p-7 text-center shadow-xl sm:p-10">
+          <div className="text-6xl">🏢</div>
+
+          <p className="mt-5 text-sm font-extrabold uppercase tracking-[0.18em] text-amber-700">
+            Moduł pracodawcy
+          </p>
+
+          <h1 className="mt-3 text-3xl font-extrabold text-slate-900">
+            Ta funkcja jest dostępna dla pracodawców
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-xl leading-7 text-slate-600">
+            Twoje konto jest obecnie kontem kandydata. Jeśli chcesz także
+            wyszukiwać pracowników, zmień typ konta na „Obie opcje” w
+            ustawieniach profilu.
+          </p>
+
+          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link
+              href="/ustawienia/profil"
+              className="rounded-xl bg-blue-700 px-6 py-3.5 font-bold text-white hover:bg-blue-800"
+            >
+              Zmień typ konta
+            </Link>
+
+            <Link
+              href="/"
+              className="rounded-xl border border-slate-300 bg-white px-6 py-3.5 font-bold text-slate-700 hover:bg-slate-50"
+            >
+              Wróć na stronę główną
+            </Link>
+          </div>
+        </section>
+      </main>
     );
   }
 
@@ -852,10 +769,8 @@ export default function FindCandidatePage() {
           </h1>
 
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-200">
-            Wyszukuj osoby otwarte na propozycje
-            pracy według stanowiska,
-            doświadczenia, lokalizacji i
-            umiejętności. Dane kontaktowe
+            Wyszukuj osoby otwarte na propozycje pracy według stanowiska,
+            doświadczenia, lokalizacji i umiejętności. Dane kontaktowe
             kandydatów pozostają chronione.
           </p>
         </section>
@@ -863,15 +778,11 @@ export default function FindCandidatePage() {
         <section className="mt-8 rounded-3xl bg-white p-5 shadow sm:p-8">
           <div className="grid gap-6 md:grid-cols-2">
             <div>
-              <label className="mb-2 block font-semibold">
-                Stanowisko
-              </label>
+              <label className="mb-2 block font-semibold">Stanowisko</label>
 
               <input
                 value={role}
-                onChange={(event) =>
-                  setRole(event.target.value)
-                }
+                onChange={(event) => setRole(event.target.value)}
                 placeholder="Np. Kierowca kat. C+E"
                 className="w-full rounded-xl border p-4"
               />
@@ -887,37 +798,24 @@ export default function FindCandidatePage() {
                 min="0"
                 max="60"
                 value={minExperience}
-                onChange={(event) =>
-                  setMinExperience(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setMinExperience(event.target.value)}
                 placeholder="Np. 3 lata"
                 className="w-full rounded-xl border p-4"
               />
             </div>
 
             <div>
-              <label className="mb-2 block font-semibold">
-                Województwo
-              </label>
+              <label className="mb-2 block font-semibold">Województwo</label>
 
               <select
                 value={province}
-                onChange={(event) =>
-                  setProvince(event.target.value)
-                }
+                onChange={(event) => setProvince(event.target.value)}
                 className="w-full rounded-xl border p-4"
               >
-                <option value="">
-                  Cała Polska
-                </option>
+                <option value="">Cała Polska</option>
 
                 {provinces.map((item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
+                  <option key={item} value={item}>
                     {item}
                   </option>
                 ))}
@@ -925,15 +823,11 @@ export default function FindCandidatePage() {
             </div>
 
             <div>
-              <label className="mb-2 block font-semibold">
-                Miasto
-              </label>
+              <label className="mb-2 block font-semibold">Miasto</label>
 
               <input
                 value={city}
-                onChange={(event) =>
-                  setCity(event.target.value)
-                }
+                onChange={(event) => setCity(event.target.value)}
                 placeholder="Np. Katowice"
                 className="w-full rounded-xl border p-4"
               />
@@ -941,25 +835,18 @@ export default function FindCandidatePage() {
           </div>
 
           <div className="mt-7">
-            <p className="mb-3 font-semibold">
-              Forma pracy
-            </p>
+            <p className="mb-3 font-semibold">Forma pracy</p>
 
             <div className="flex flex-wrap gap-3">
               {workModeOptions.map((mode) => {
-                const selected =
-                  selectedWorkModes.includes(mode);
+                const selected = selectedWorkModes.includes(mode);
 
                 return (
                   <button
                     key={mode}
                     type="button"
                     onClick={() =>
-                      toggleValue(
-                        mode,
-                        selectedWorkModes,
-                        setSelectedWorkModes
-                      )
+                      toggleValue(mode, selectedWorkModes, setSelectedWorkModes)
                     }
                     className={`rounded-full px-4 py-2 font-semibold ${
                       selected
@@ -977,13 +864,11 @@ export default function FindCandidatePage() {
 
           <div className="mt-7">
             <div className="mb-4">
-              <p className="font-semibold">
-                Umiejętności kandydata
-              </p>
+              <p className="font-semibold">Umiejętności kandydata</p>
 
               <p className="mt-1 text-sm text-slate-500">
-                Klikaj kafelek, aby zmienić jego status:
-                nie wybrano → dodatkowy atut → wymagane.
+                Klikaj kafelek, aby zmienić jego status: nie wybrano → dodatkowy
+                atut → wymagane.
               </p>
             </div>
 
@@ -1003,11 +888,9 @@ export default function FindCandidatePage() {
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {skillOptions.map((skill) => {
-                const isRequired =
-                  requiredSkills.includes(skill);
+                const isRequired = requiredSkills.includes(skill);
 
-                const isOptional =
-                  optionalSkills.includes(skill);
+                const isOptional = optionalSkills.includes(skill);
 
                 const stateLabel = isRequired
                   ? "🔴 Wymagane"
@@ -1019,9 +902,7 @@ export default function FindCandidatePage() {
                   <button
                     key={skill}
                     type="button"
-                    onClick={() =>
-                      cycleSkillState(skill)
-                    }
+                    onClick={() => cycleSkillState(skill)}
                     className={`rounded-2xl border p-4 text-left transition ${
                       isRequired
                         ? "border-red-300 bg-red-50 text-red-900"
@@ -1030,9 +911,7 @@ export default function FindCandidatePage() {
                           : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                     }`}
                   >
-                    <span className="block font-bold">
-                      {skill}
-                    </span>
+                    <span className="block font-bold">{skill}</span>
 
                     <span className="mt-1 block text-xs font-semibold">
                       {stateLabel}
@@ -1047,11 +926,7 @@ export default function FindCandidatePage() {
             <input
               type="checkbox"
               checked={openOnly}
-              onChange={(event) =>
-                setOpenOnly(
-                  event.target.checked
-                )
-              }
+              onChange={(event) => setOpenOnly(event.target.checked)}
               className="mt-1 h-5 w-5"
             />
 
@@ -1061,8 +936,7 @@ export default function FindCandidatePage() {
               </p>
 
               <p className="mt-1 text-sm text-slate-600">
-                Zalecane ustawienie — pokazuje
-                kandydatów, którzy zgodzili się
+                Zalecane ustawienie — pokazuje kandydatów, którzy zgodzili się
                 pojawiać w wyszukiwarce pracodawców.
               </p>
             </div>
@@ -1074,9 +948,7 @@ export default function FindCandidatePage() {
             disabled={loading}
             className="mt-7 w-full rounded-xl bg-blue-700 px-6 py-4 text-lg font-bold text-white hover:bg-blue-800 disabled:opacity-50"
           >
-            {loading
-              ? "Wyszukiwanie..."
-              : "🔎 Szukaj kandydatów"}
+            {loading ? "Wyszukiwanie..." : "🔎 Szukaj kandydatów"}
           </button>
 
           {errorMessage && (
@@ -1121,16 +993,14 @@ export default function FindCandidatePage() {
                     </h3>
 
                     <p className="mt-2 text-sm leading-6 text-slate-600">
-                      Gdy pojawi się kandydat zgodny z tym wyszukiwaniem,
-                      system będzie mógł wysłać informację na podany e-mail.
+                      Gdy pojawi się kandydat zgodny z tym wyszukiwaniem, system
+                      będzie mógł wysłać informację na podany e-mail.
                     </p>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowAlertForm(false)
-                    }
+                    onClick={() => setShowAlertForm(false)}
                     className="self-start rounded-xl bg-white px-4 py-2 font-bold text-slate-600 ring-1 ring-slate-200"
                   >
                     Zamknij
@@ -1146,10 +1016,7 @@ export default function FindCandidatePage() {
                     <input
                       value={employerData.companyName}
                       onChange={(event) =>
-                        updateEmployerField(
-                          "companyName",
-                          event.target.value
-                        )
+                        updateEmployerField("companyName", event.target.value)
                       }
                       placeholder="Np. Firma ABC"
                       className="w-full rounded-xl border border-green-200 bg-white p-4"
@@ -1164,10 +1031,7 @@ export default function FindCandidatePage() {
                     <input
                       value={employerData.contactName}
                       onChange={(event) =>
-                        updateEmployerField(
-                          "contactName",
-                          event.target.value
-                        )
+                        updateEmployerField("contactName", event.target.value)
                       }
                       placeholder="Imię i nazwisko"
                       className="w-full rounded-xl border border-green-200 bg-white p-4"
@@ -1183,10 +1047,7 @@ export default function FindCandidatePage() {
                       type="email"
                       value={employerData.contactEmail}
                       onChange={(event) =>
-                        updateEmployerField(
-                          "contactEmail",
-                          event.target.value
-                        )
+                        updateEmployerField("contactEmail", event.target.value)
                       }
                       placeholder="firma@example.pl"
                       className="w-full rounded-xl border border-green-200 bg-white p-4"
@@ -1194,18 +1055,13 @@ export default function FindCandidatePage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block font-semibold">
-                      Telefon
-                    </label>
+                    <label className="mb-2 block font-semibold">Telefon</label>
 
                     <input
                       type="tel"
                       value={employerData.contactPhone}
                       onChange={(event) =>
-                        updateEmployerField(
-                          "contactPhone",
-                          event.target.value
-                        )
+                        updateEmployerField("contactPhone", event.target.value)
                       }
                       placeholder="Np. 600 123 456"
                       className="w-full rounded-xl border border-green-200 bg-white p-4"
@@ -1250,18 +1106,15 @@ export default function FindCandidatePage() {
 
             {candidates.length === 0 ? (
               <div className="rounded-3xl bg-white p-10 text-center shadow">
-                <div className="text-5xl">
-                  🔎
-                </div>
+                <div className="text-5xl">🔎</div>
 
                 <h3 className="mt-4 text-2xl font-bold">
                   Brak pasujących kandydatów
                 </h3>
 
                 <p className="mt-2 text-slate-500">
-                  Zmień część filtrów albo zapisz
-                  alert, aby otrzymać powiadomienie,
-                  gdy pojawi się odpowiednia osoba.
+                  Zmień część filtrów albo zapisz alert, aby otrzymać
+                  powiadomienie, gdy pojawi się odpowiednia osoba.
                 </p>
               </div>
             ) : (
@@ -1278,13 +1131,10 @@ export default function FindCandidatePage() {
 
                       <div
                         className={`rounded-full px-3 py-1.5 text-sm font-extrabold ${
-                          getScoreBadge(
-                            candidate.blisko_score ?? 0
-                          ).className
+                          getScoreBadge(candidate.blisko_score ?? 0).className
                         }`}
                       >
-                        🏆 BLISKO SCORE{" "}
-                        {candidate.blisko_score ?? 0}
+                        🏆 BLISKO SCORE {candidate.blisko_score ?? 0}
                       </div>
                     </div>
 
@@ -1292,10 +1142,7 @@ export default function FindCandidatePage() {
                       {candidate.avatar_url ? (
                         <img
                           src={candidate.avatar_url}
-                          alt={
-                            candidate.name ??
-                            "Kandydat"
-                          }
+                          alt={candidate.name ?? "Kandydat"}
                           className="h-16 w-16 rounded-full object-cover"
                         />
                       ) : (
@@ -1307,8 +1154,7 @@ export default function FindCandidatePage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="truncate text-xl font-extrabold text-slate-900">
-                            {candidate.name ??
-                              "Kandydat BLISKO24"}
+                            {candidate.name ?? "Kandydat BLISKO24"}
                           </h3>
 
                           {candidate.verified && (
@@ -1322,8 +1168,7 @@ export default function FindCandidatePage() {
                         </div>
 
                         <p className="mt-1 font-semibold text-blue-700">
-                          {candidate.candidate_role ??
-                            "Nie podano stanowiska"}
+                          {candidate.candidate_role ?? "Nie podano stanowiska"}
                         </p>
                       </div>
                     </div>
@@ -1336,44 +1181,33 @@ export default function FindCandidatePage() {
                           candidate.preferred_city,
                         ]
                           .filter(Boolean)
-                          .join(" • ") ||
-                          "Cała Polska"}
+                          .join(" • ") || "Cała Polska"}
                       </p>
 
                       <p>
-                        ⭐{" "}
-                        {candidate.years_of_experience ??
-                          0}{" "}
-                        lat doświadczenia
+                        ⭐ {candidate.years_of_experience ?? 0} lat
+                        doświadczenia
                       </p>
 
                       <p>
                         💼{" "}
-                        {candidate.work_modes?.join(
-                          ", "
-                        ) || "Forma do uzgodnienia"}
+                        {candidate.work_modes?.join(", ") ||
+                          "Forma do uzgodnienia"}
                       </p>
 
-                      <p>
-                        📋{" "}
-                        {candidate.active_ads ?? 0}{" "}
-                        aktywnych ogłoszeń
-                      </p>
+                      <p>📋 {candidate.active_ads ?? 0} aktywnych ogłoszeń</p>
 
                       <p>
                         {candidate.available_from
                           ? `🟢 Dostępny od ${new Date(
-                              candidate.available_from
-                            ).toLocaleDateString(
-                              "pl-PL"
-                            )}`
+                              candidate.available_from,
+                            ).toLocaleDateString("pl-PL")}`
                           : "🟡 Dostępność do uzgodnienia"}
                       </p>
                     </div>
 
                     {candidate.candidate_skills &&
-                      candidate.candidate_skills
-                        .length > 0 && (
+                      candidate.candidate_skills.length > 0 && (
                         <div className="mt-5 flex flex-wrap gap-2">
                           {candidate.candidate_skills
                             .slice(0, 6)
@@ -1394,21 +1228,16 @@ export default function FindCandidatePage() {
                       </summary>
 
                       <div className="mt-4 space-y-2">
-                        {getMatchReasons(
-                          candidate,
-                          {
-                            role,
-                            province,
-                            city,
-                            minExperience:
-                              numericExperience,
-                            requiredSkills,
-                            optionalSkills,
-                            workModes:
-                              selectedWorkModes,
-                            openOnly,
-                          }
-                        ).map((reason) => (
+                        {getMatchReasons(candidate, {
+                          role,
+                          province,
+                          city,
+                          minExperience: numericExperience,
+                          requiredSkills,
+                          optionalSkills,
+                          workModes: selectedWorkModes,
+                          openOnly,
+                        }).map((reason) => (
                           <div
                             key={reason.label}
                             className={`rounded-xl px-3 py-2 text-sm font-semibold ${
@@ -1417,10 +1246,7 @@ export default function FindCandidatePage() {
                                 : "bg-red-50 text-red-700"
                             }`}
                           >
-                            {reason.matched
-                              ? "✔"
-                              : "✖"}{" "}
-                            {reason.label}
+                            {reason.matched ? "✔" : "✖"} {reason.label}
                           </div>
                         ))}
                       </div>

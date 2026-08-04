@@ -147,7 +147,10 @@ const skillGroups = [
 
 const workModeOptions = ["Stacjonarna", "Hybrydowa", "Zdalna"];
 
+type AccountType = "candidate" | "employer" | "both";
+
 type ProfileForm = {
+  account_type: AccountType;
   name: string;
   city: string;
   phone: string;
@@ -177,6 +180,7 @@ type ProfileForm = {
 };
 
 const emptyProfile: ProfileForm = {
+  account_type: "both",
   name: "",
   city: "",
   phone: "",
@@ -237,6 +241,7 @@ export default function EditProfilePage() {
       .from("profiles")
       .select(
         `
+        account_type,
         name,
         city,
         description,
@@ -292,6 +297,7 @@ export default function EditProfilePage() {
     }
 
     setProfile({
+      account_type: (data.account_type ?? "both") as AccountType,
       name: data.name ?? "",
       city: data.city ?? "",
       phone: contactData?.phone ?? "",
@@ -351,6 +357,17 @@ export default function EditProfilePage() {
     setProfile((previous) => ({
       ...previous,
       [field]: value,
+    }));
+  }
+
+  function updateAccountType(accountType: AccountType) {
+    setProfile((previous) => ({
+      ...previous,
+      account_type: accountType,
+      open_to_job_offers:
+        accountType === "employer" ? false : previous.open_to_job_offers,
+      contact_sharing_consent:
+        accountType === "employer" ? false : previous.contact_sharing_consent,
     }));
   }
 
@@ -420,6 +437,9 @@ export default function EditProfilePage() {
       return;
     }
 
+    const candidateFeaturesEnabled =
+      profile.account_type === "candidate" || profile.account_type === "both";
+
     const experience = profile.years_of_experience.trim();
 
     let numericExperience: number | null = null;
@@ -439,12 +459,20 @@ export default function EditProfilePage() {
       numericExperience = parsedExperience;
     }
 
-    if (profile.open_to_job_offers && !profile.candidate_role.trim()) {
+    if (
+      candidateFeaturesEnabled &&
+      profile.open_to_job_offers &&
+      !profile.candidate_role.trim()
+    ) {
       alert("Wpisz stanowisko, którego szukasz.");
       return;
     }
 
-    if (profile.contact_sharing_consent && !profile.phone.trim()) {
+    if (
+      candidateFeaturesEnabled &&
+      profile.contact_sharing_consent &&
+      !profile.phone.trim()
+    ) {
       alert("Aby zgodzić się na udostępnienie kontaktu, wpisz numer telefonu.");
       return;
     }
@@ -477,6 +505,7 @@ export default function EditProfilePage() {
     const { error: profileError } = await supabase
       .from("profiles")
       .update({
+        account_type: profile.account_type,
         name: profile.name.trim(),
         city: profile.city.trim() || null,
         description: profile.description.trim() || null,
@@ -509,9 +538,13 @@ export default function EditProfilePage() {
 
         available_from: profile.available_from || null,
 
-        open_to_job_offers: profile.open_to_job_offers,
+        open_to_job_offers: candidateFeaturesEnabled
+          ? profile.open_to_job_offers
+          : false,
 
-        contact_sharing_consent: profile.contact_sharing_consent,
+        contact_sharing_consent: candidateFeaturesEnabled
+          ? profile.contact_sharing_consent
+          : false,
 
         years_of_experience: numericExperience,
       })
@@ -548,7 +581,7 @@ export default function EditProfilePage() {
           </p>
 
           <h1 className="mt-2 text-4xl font-extrabold text-slate-900">
-            Edytuj profil
+            Edytuj profil i typ konta
           </h1>
 
           <p className="mt-3 text-gray-500">
@@ -557,6 +590,83 @@ export default function EditProfilePage() {
         </div>
 
         <div className="space-y-10 rounded-3xl bg-white p-5 shadow sm:p-8">
+          <section className="rounded-3xl border border-blue-200 bg-blue-50 p-5 sm:p-7">
+            <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-blue-700">
+              Typ konta
+            </p>
+
+            <h2 className="mt-2 text-2xl font-extrabold text-slate-900 sm:text-3xl">
+              Jak chcesz korzystać z BLISKO24?
+            </h2>
+
+            <p className="mt-3 leading-7 text-slate-600">
+              Wybór możesz później zmienić. Dane zapisane w niewidocznej części
+              profilu nie zostaną usunięte.
+            </p>
+
+            <div className="mt-6 grid gap-4 lg:grid-cols-3">
+              {[
+                {
+                  value: "candidate" as AccountType,
+                  icon: "👤",
+                  title: "Szukam pracy",
+                  description:
+                    "Tworzę profil kandydata i chcę otrzymywać propozycje pracy.",
+                },
+                {
+                  value: "employer" as AccountType,
+                  icon: "🏢",
+                  title: "Szukam pracownika",
+                  description:
+                    "Tworzę alerty, przeglądam dopasowania i kontaktuję się z kandydatami.",
+                },
+                {
+                  value: "both" as AccountType,
+                  icon: "🤝",
+                  title: "Obie opcje",
+                  description:
+                    "Chcę korzystać zarówno z funkcji kandydata, jak i pracodawcy.",
+                },
+              ].map((option) => {
+                const selected = profile.account_type === option.value;
+
+                return (
+                  <label
+                    key={option.value}
+                    className={`cursor-pointer rounded-2xl border p-5 transition ${
+                      selected
+                        ? "border-blue-600 bg-white shadow-md ring-2 ring-blue-200"
+                        : "border-blue-200 bg-blue-50 hover:bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <input
+                        type="radio"
+                        name="account_type"
+                        value={option.value}
+                        checked={selected}
+                        onChange={() => updateAccountType(option.value)}
+                        className="mt-1 h-5 w-5"
+                      />
+
+                      <div>
+                        <div className="text-3xl">{option.icon}</div>
+                        <p className="mt-2 font-extrabold text-slate-900">
+                          {option.title}
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                          {option.description}
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </section>
+
+          <hr className="border-slate-200" />
+
           <section>
             <h2 className="text-2xl font-bold">Zdjęcie profilowe</h2>
 
@@ -651,399 +761,413 @@ export default function EditProfilePage() {
 
           <hr className="border-slate-200" />
 
-          <section className="space-y-7 rounded-3xl border border-green-200 bg-green-50 p-5 sm:p-7">
-            <div>
-              <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-green-700">
-                Dla osób szukających pracy
-              </p>
-
-              <h2 className="mt-2 text-3xl font-extrabold text-slate-900">
-                🎯 Profil kandydata
-              </h2>
-
-              <p className="mt-3 leading-7 text-green-800">
-                Uzupełnienie tych danych jest bezpłatne. Dzięki nim pracodawcy
-                będą mogli znaleźć Cię po stanowisku, umiejętnościach i
-                lokalizacji.
-              </p>
-            </div>
-
-            <div>
-              <label className="mb-2 block font-semibold">
-                Jakiej pracy szukasz?
-              </label>
-
-              <input
-                value={profile.candidate_role}
-                onChange={(event) =>
-                  updateTextField("candidate_role", event.target.value)
-                }
-                placeholder="Np. Kierowca kat. C, sprzedawca, hydraulik"
-                className="w-full rounded-xl border border-green-200 bg-white p-4"
-              />
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
+          {(profile.account_type === "candidate" ||
+            profile.account_type === "both") && (
+            <section className="space-y-7 rounded-3xl border border-green-200 bg-green-50 p-5 sm:p-7">
               <div>
-                <label className="mb-2 block font-semibold">
-                  Lata doświadczenia
-                </label>
+                <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-green-700">
+                  Dla osób szukających pracy
+                </p>
 
-                <input
-                  type="number"
-                  min="0"
-                  max="60"
-                  value={profile.years_of_experience}
-                  onChange={(event) =>
-                    updateTextField("years_of_experience", event.target.value)
-                  }
-                  placeholder="Np. 5"
-                  className="w-full rounded-xl border border-green-200 bg-white p-4"
-                />
-              </div>
+                <h2 className="mt-2 text-3xl font-extrabold text-slate-900">
+                  🎯 Profil kandydata
+                </h2>
 
-              <div>
-                <label className="mb-2 block font-semibold">Dostępny od</label>
-
-                <input
-                  type="date"
-                  value={profile.available_from}
-                  onChange={(event) =>
-                    updateTextField("available_from", event.target.value)
-                  }
-                  className="w-full rounded-xl border border-green-200 bg-white p-4"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block font-semibold">
-                  Preferowane województwo
-                </label>
-
-                <select
-                  value={profile.preferred_province}
-                  onChange={(event) =>
-                    updateTextField("preferred_province", event.target.value)
-                  }
-                  className="w-full rounded-xl border border-green-200 bg-white p-4"
-                >
-                  <option value="">Cała Polska</option>
-
-                  {provinces.map((province) => (
-                    <option key={province} value={province}>
-                      {province}
-                    </option>
-                  ))}
-                </select>
+                <p className="mt-3 leading-7 text-green-800">
+                  Uzupełnienie tych danych jest bezpłatne. Dzięki nim pracodawcy
+                  będą mogli znaleźć Cię po stanowisku, umiejętnościach i
+                  lokalizacji.
+                </p>
               </div>
 
               <div>
                 <label className="mb-2 block font-semibold">
-                  Preferowane miasto
+                  Jakiej pracy szukasz?
                 </label>
 
                 <input
-                  value={profile.preferred_city}
+                  value={profile.candidate_role}
                   onChange={(event) =>
-                    updateTextField("preferred_city", event.target.value)
+                    updateTextField("candidate_role", event.target.value)
                   }
-                  placeholder="Np. Katowice"
+                  placeholder="Np. Kierowca kat. C, sprzedawca, hydraulik"
                   className="w-full rounded-xl border border-green-200 bg-white p-4"
                 />
               </div>
-            </div>
 
-            <div>
-              <p className="mb-3 font-semibold">Preferowana forma pracy</p>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                {workModeOptions.map((workMode) => {
-                  const checked = profile.work_modes.includes(workMode);
-
-                  return (
-                    <label
-                      key={workMode}
-                      className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${
-                        checked
-                          ? "border-green-500 bg-white"
-                          : "border-green-200 bg-green-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleWorkMode(workMode)}
-                        className="h-5 w-5"
-                      />
-
-                      <span className="font-semibold">{workMode}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <p className="mb-3 font-semibold">Umiejętności i uprawnienia</p>
-
-              <div className="space-y-7">
-                {skillGroups.map((group) => (
-                  <div key={group.name}>
-                    <h3 className="mb-3 text-lg font-extrabold text-slate-900">
-                      {group.name}
-                    </h3>
-
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {group.skills.map((skill) => {
-                        const checked =
-                          profile.candidate_skills.includes(skill);
-
-                        return (
-                          <label
-                            key={skill}
-                            className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${
-                              checked
-                                ? "border-green-500 bg-white"
-                                : "border-green-200 bg-green-50"
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleSkill(skill)}
-                              className="h-5 w-5"
-                            />
-
-                            <span className="font-semibold">{skill}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowCustomSkill((previous) => !previous)}
-                className={`mt-5 flex w-full items-center justify-between rounded-2xl border p-4 text-left font-bold transition ${
-                  showCustomSkill
-                    ? "border-blue-500 bg-blue-50 text-blue-800"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                <span>➕ Inne umiejętności</span>
-                <span>{showCustomSkill ? "−" : "+"}</span>
-              </button>
-
-              {showCustomSkill && (
-                <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-                  <label className="mb-2 block font-semibold text-slate-900">
-                    Wpisz własną umiejętność
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block font-semibold">
+                    Lata doświadczenia
                   </label>
 
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <input
-                      value={customSkill}
-                      onChange={(event) => setCustomSkill(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          addCustomSkill();
-                        }
-                      }}
-                      placeholder="Np. operator żurawia, montaż klimatyzacji"
-                      className="flex-1 rounded-xl border border-blue-200 bg-white p-4"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={addCustomSkill}
-                      className="rounded-xl bg-blue-700 px-6 py-4 font-bold text-white hover:bg-blue-800"
-                    >
-                      + Dodaj
-                    </button>
-                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="60"
+                    value={profile.years_of_experience}
+                    onChange={(event) =>
+                      updateTextField("years_of_experience", event.target.value)
+                    }
+                    placeholder="Np. 5"
+                    className="w-full rounded-xl border border-green-200 bg-white p-4"
+                  />
                 </div>
-              )}
 
-              {profile.candidate_skills.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {profile.candidate_skills.map((skill) => (
-                    <button
-                      key={skill}
-                      type="button"
-                      onClick={() => toggleSkill(skill)}
-                      className="rounded-full bg-white px-4 py-2 text-sm font-bold text-green-800 shadow-sm ring-1 ring-green-200"
-                      title="Kliknij, aby usunąć"
-                    >
-                      {skill} ×
-                    </button>
+                <div>
+                  <label className="mb-2 block font-semibold">
+                    Dostępny od
+                  </label>
+
+                  <input
+                    type="date"
+                    value={profile.available_from}
+                    onChange={(event) =>
+                      updateTextField("available_from", event.target.value)
+                    }
+                    className="w-full rounded-xl border border-green-200 bg-white p-4"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block font-semibold">
+                    Preferowane województwo
+                  </label>
+
+                  <select
+                    value={profile.preferred_province}
+                    onChange={(event) =>
+                      updateTextField("preferred_province", event.target.value)
+                    }
+                    className="w-full rounded-xl border border-green-200 bg-white p-4"
+                  >
+                    <option value="">Cała Polska</option>
+
+                    {provinces.map((province) => (
+                      <option key={province} value={province}>
+                        {province}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block font-semibold">
+                    Preferowane miasto
+                  </label>
+
+                  <input
+                    value={profile.preferred_city}
+                    onChange={(event) =>
+                      updateTextField("preferred_city", event.target.value)
+                    }
+                    placeholder="Np. Katowice"
+                    className="w-full rounded-xl border border-green-200 bg-white p-4"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-3 font-semibold">Preferowana forma pracy</p>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {workModeOptions.map((workMode) => {
+                    const checked = profile.work_modes.includes(workMode);
+
+                    return (
+                      <label
+                        key={workMode}
+                        className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${
+                          checked
+                            ? "border-green-500 bg-white"
+                            : "border-green-200 bg-green-50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleWorkMode(workMode)}
+                          className="h-5 w-5"
+                        />
+
+                        <span className="font-semibold">{workMode}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-3 font-semibold">Umiejętności i uprawnienia</p>
+
+                <div className="space-y-7">
+                  {skillGroups.map((group) => (
+                    <div key={group.name}>
+                      <h3 className="mb-3 text-lg font-extrabold text-slate-900">
+                        {group.name}
+                      </h3>
+
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {group.skills.map((skill) => {
+                          const checked =
+                            profile.candidate_skills.includes(skill);
+
+                          return (
+                            <label
+                              key={skill}
+                              className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${
+                                checked
+                                  ? "border-green-500 bg-white"
+                                  : "border-green-200 bg-green-50"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleSkill(skill)}
+                                className="h-5 w-5"
+                              />
+
+                              <span className="font-semibold">{skill}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
                   ))}
                 </div>
-              )}
-            </div>
 
-            <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-green-300 bg-white p-5">
-              <input
-                type="checkbox"
-                checked={profile.open_to_job_offers}
-                onChange={(event) =>
-                  updateBooleanField("open_to_job_offers", event.target.checked)
-                }
-                className="mt-1 h-5 w-5"
-              />
+                <button
+                  type="button"
+                  onClick={() => setShowCustomSkill((previous) => !previous)}
+                  className={`mt-5 flex w-full items-center justify-between rounded-2xl border p-4 text-left font-bold transition ${
+                    showCustomSkill
+                      ? "border-blue-500 bg-blue-50 text-blue-800"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <span>➕ Inne umiejętności</span>
+                  <span>{showCustomSkill ? "−" : "+"}</span>
+                </button>
 
-              <div>
-                <p className="font-extrabold text-slate-900">
-                  Jestem otwarty na propozycje pracy
-                </p>
+                {showCustomSkill && (
+                  <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                    <label className="mb-2 block font-semibold text-slate-900">
+                      Wpisz własną umiejętność
+                    </label>
 
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Po włączeniu Twój profil może pojawiać się w wynikach
-                  wyszukiwania pracodawców.
-                </p>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <input
+                        value={customSkill}
+                        onChange={(event) => setCustomSkill(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            addCustomSkill();
+                          }
+                        }}
+                        placeholder="Np. operator żurawia, montaż klimatyzacji"
+                        className="flex-1 rounded-xl border border-blue-200 bg-white p-4"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={addCustomSkill}
+                        className="rounded-xl bg-blue-700 px-6 py-4 font-bold text-white hover:bg-blue-800"
+                      >
+                        + Dodaj
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {profile.candidate_skills.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {profile.candidate_skills.map((skill) => (
+                      <button
+                        key={skill}
+                        type="button"
+                        onClick={() => toggleSkill(skill)}
+                        className="rounded-full bg-white px-4 py-2 text-sm font-bold text-green-800 shadow-sm ring-1 ring-green-200"
+                        title="Kliknij, aby usunąć"
+                      >
+                        {skill} ×
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </label>
 
-            <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5">
-              <input
-                type="checkbox"
-                checked={profile.contact_sharing_consent}
-                onChange={(event) =>
-                  updateBooleanField(
-                    "contact_sharing_consent",
-                    event.target.checked,
-                  )
-                }
-                className="mt-1 h-5 w-5"
-              />
-
-              <div>
-                <p className="font-extrabold text-slate-900">
-                  Zgadzam się na udostępnienie kontaktu pracodawcy
-                </p>
-
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Kontakt będzie mógł zostać przekazany pracodawcy po spełnieniu
-                  warunków usługi. Możesz wycofać zgodę w każdej chwili.
-                </p>
-              </div>
-            </label>
-          </section>
-
-          <hr className="border-slate-200" />
-
-          <section className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold">Dane firmy</h2>
-
-              <p className="mt-2 text-sm text-gray-500">
-                Uzupełnij tę część, jeśli prowadzisz działalność.
-              </p>
-            </div>
-
-            <div>
-              <label className="mb-2 block font-semibold">Logo firmy</label>
-
-              <div className="max-w-xs">
-                <ImageUpload
-                  folder="company-logos"
-                  value={profile.company_logo}
-                  onUpload={(url) => updateTextField("company_logo", url)}
+              <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-green-300 bg-white p-5">
+                <input
+                  type="checkbox"
+                  checked={profile.open_to_job_offers}
+                  onChange={(event) =>
+                    updateBooleanField(
+                      "open_to_job_offers",
+                      event.target.checked,
+                    )
+                  }
+                  className="mt-1 h-5 w-5"
                 />
-              </div>
-            </div>
 
-            <div>
-              <label className="mb-2 block font-semibold">Nazwa firmy</label>
+                <div>
+                  <p className="font-extrabold text-slate-900">
+                    Jestem otwarty na propozycje pracy
+                  </p>
 
-              <input
-                value={profile.company_name}
-                onChange={(event) =>
-                  updateTextField("company_name", event.target.value)
-                }
-                placeholder="Np. Elektro-Serwis"
-                className="w-full rounded-xl border p-4"
-              />
-            </div>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    Po włączeniu Twój profil może pojawiać się w wynikach
+                    wyszukiwania pracodawców.
+                  </p>
+                </div>
+              </label>
 
-            <div>
-              <label className="mb-2 block font-semibold">Opis firmy</label>
+              <label className="flex cursor-pointer items-start gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+                <input
+                  type="checkbox"
+                  checked={profile.contact_sharing_consent}
+                  onChange={(event) =>
+                    updateBooleanField(
+                      "contact_sharing_consent",
+                      event.target.checked,
+                    )
+                  }
+                  className="mt-1 h-5 w-5"
+                />
 
-              <textarea
-                value={profile.company_description}
-                onChange={(event) =>
-                  updateTextField("company_description", event.target.value)
-                }
-                placeholder="Opisz działalność firmy..."
-                rows={5}
-                className="w-full rounded-xl border p-4"
-              />
-            </div>
+                <div>
+                  <p className="font-extrabold text-slate-900">
+                    Zgadzam się na udostępnienie kontaktu pracodawcy
+                  </p>
 
-            <div className="grid gap-6 md:grid-cols-2">
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    Kontakt będzie mógł zostać przekazany pracodawcy po
+                    spełnieniu warunków usługi. Możesz wycofać zgodę w każdej
+                    chwili.
+                  </p>
+                </div>
+              </label>
+            </section>
+          )}
+
+          {profile.account_type !== "candidate" && (
+            <hr className="border-slate-200" />
+          )}
+
+          {(profile.account_type === "employer" ||
+            profile.account_type === "both") && (
+            <section className="space-y-6">
               <div>
-                <label className="mb-2 block font-semibold">
-                  Strona internetowa
-                </label>
+                <h2 className="text-2xl font-bold">Dane firmy</h2>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  Uzupełnij tę część, jeśli prowadzisz działalność.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-2 block font-semibold">Logo firmy</label>
+
+                <div className="max-w-xs">
+                  <ImageUpload
+                    folder="company-logos"
+                    value={profile.company_logo}
+                    onUpload={(url) => updateTextField("company_logo", url)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block font-semibold">Nazwa firmy</label>
 
                 <input
-                  value={profile.website}
+                  value={profile.company_name}
                   onChange={(event) =>
-                    updateTextField("website", event.target.value)
+                    updateTextField("company_name", event.target.value)
                   }
-                  placeholder="https://twojastrona.pl"
+                  placeholder="Np. Elektro-Serwis"
                   className="w-full rounded-xl border p-4"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block font-semibold">
-                  Godziny pracy
-                </label>
+                <label className="mb-2 block font-semibold">Opis firmy</label>
 
-                <input
-                  value={profile.opening_hours}
+                <textarea
+                  value={profile.company_description}
                   onChange={(event) =>
-                    updateTextField("opening_hours", event.target.value)
+                    updateTextField("company_description", event.target.value)
                   }
-                  placeholder="Pon–Pt 8:00–17:00"
-                  className="w-full rounded-xl border p-4"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block font-semibold">Facebook</label>
-
-                <input
-                  value={profile.facebook}
-                  onChange={(event) =>
-                    updateTextField("facebook", event.target.value)
-                  }
-                  placeholder="Link do profilu"
+                  placeholder="Opisz działalność firmy..."
+                  rows={5}
                   className="w-full rounded-xl border p-4"
                 />
               </div>
 
-              <div>
-                <label className="mb-2 block font-semibold">Instagram</label>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block font-semibold">
+                    Strona internetowa
+                  </label>
 
-                <input
-                  value={profile.instagram}
-                  onChange={(event) =>
-                    updateTextField("instagram", event.target.value)
-                  }
-                  placeholder="Link do profilu"
-                  className="w-full rounded-xl border p-4"
-                />
+                  <input
+                    value={profile.website}
+                    onChange={(event) =>
+                      updateTextField("website", event.target.value)
+                    }
+                    placeholder="https://twojastrona.pl"
+                    className="w-full rounded-xl border p-4"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block font-semibold">
+                    Godziny pracy
+                  </label>
+
+                  <input
+                    value={profile.opening_hours}
+                    onChange={(event) =>
+                      updateTextField("opening_hours", event.target.value)
+                    }
+                    placeholder="Pon–Pt 8:00–17:00"
+                    className="w-full rounded-xl border p-4"
+                  />
+                </div>
               </div>
-            </div>
-          </section>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block font-semibold">Facebook</label>
+
+                  <input
+                    value={profile.facebook}
+                    onChange={(event) =>
+                      updateTextField("facebook", event.target.value)
+                    }
+                    placeholder="Link do profilu"
+                    className="w-full rounded-xl border p-4"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block font-semibold">Instagram</label>
+
+                  <input
+                    value={profile.instagram}
+                    onChange={(event) =>
+                      updateTextField("instagram", event.target.value)
+                    }
+                    placeholder="Link do profilu"
+                    className="w-full rounded-xl border p-4"
+                  />
+                </div>
+              </div>
+            </section>
+          )}
 
           <button
             type="button"
