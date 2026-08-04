@@ -4,6 +4,8 @@ import ReportButton from "../../../components/ReportButton";
 import AddReview from "../../../components/AddReview";
 import AdvertisementAuthor from "../../../components/advertisement/AdvertisementAuthor";
 import AdvertisementGallery from "../../../components/advertisement/AdvertisementGallery";
+import OwnerPromotionButton from "../../../components/advertisement/OwnerPromotionButton";
+import CandidateContactGate from "../../../components/advertisement/CandidateContactGate";
 
 type Props = {
   params: Promise<{
@@ -44,6 +46,9 @@ export default async function AdvertisementPage({
     );
   }
 
+  const isJobSeeker =
+    advertisement.category === "Szukam pracy";
+
   const hasPrice =
     advertisement.price !== null &&
     advertisement.price !== undefined &&
@@ -55,15 +60,17 @@ export default async function AdvertisementPage({
     hasPrice && !Number.isNaN(numericPrice)
       ? `${numericPrice.toLocaleString("pl-PL")} zł`
       : hasPrice
-        ? `${advertisement.price} zł`
+        ? String(advertisement.price)
+            .toLowerCase()
+            .includes("zł")
+          ? String(advertisement.price)
+          : `${advertisement.price} zł`
         : "Cena do uzgodnienia";
 
   return (
     <main className="min-h-screen bg-gray-100 py-8 sm:py-12">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
-
         <article className="overflow-hidden rounded-3xl bg-white shadow">
-
           <div className="p-5 sm:p-8">
             <div className="flex flex-wrap items-center gap-2">
               {advertisement.category && (
@@ -81,6 +88,18 @@ export default async function AdvertisementPage({
               {advertisement.urgent && (
                 <span className="rounded-full bg-red-600 px-3 py-1.5 text-sm font-extrabold text-white">
                   🔥 PILNE
+                </span>
+              )}
+
+              {advertisement.featured && (
+                <span className="rounded-full bg-purple-600 px-3 py-1.5 text-sm font-extrabold text-white">
+                  📌 WYRÓŻNIONE
+                </span>
+              )}
+
+              {isJobSeeker && (
+                <span className="rounded-full bg-green-100 px-3 py-1.5 text-sm font-extrabold text-green-700">
+                  💙 KANDYDAT — BEZPŁATNIE
                 </span>
               )}
             </div>
@@ -112,6 +131,11 @@ export default async function AdvertisementPage({
             <p className="mt-6 break-words text-3xl font-extrabold text-blue-700">
               {formattedPrice}
             </p>
+
+            <OwnerPromotionButton
+              advertisementId={advertisement.id}
+              ownerId={advertisement.user_id}
+            />
           </div>
 
           <AdvertisementGallery
@@ -121,7 +145,6 @@ export default async function AdvertisementPage({
           />
 
           <div className="p-5 sm:p-8">
-
             <section>
               <h2 className="text-2xl font-extrabold text-slate-900">
                 Opis
@@ -140,34 +163,43 @@ export default async function AdvertisementPage({
                 Kontakt
               </h2>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                {advertisement.phone && (
-                  <a
-                    href={`tel:${String(
-                      advertisement.phone
-                    ).replace(/[^\d+]/g, "")}`}
-                    className="flex min-h-14 items-center rounded-xl border border-slate-200 px-5 py-4 font-semibold text-slate-800 transition hover:bg-slate-50"
-                  >
-                    📞 {advertisement.phone}
-                  </a>
-                )}
+              {isJobSeeker ? (
+                <CandidateContactGate
+                  advertisementId={advertisement.id}
+                  ownerId={advertisement.user_id}
+                />
+              ) : (
+                <>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {advertisement.phone && (
+                      <a
+                        href={`tel:${String(
+                          advertisement.phone
+                        ).replace(/[^\d+]/g, "")}`}
+                        className="flex min-h-14 items-center rounded-xl border border-slate-200 px-5 py-4 font-semibold text-slate-800 transition hover:bg-slate-50"
+                      >
+                        📞 {advertisement.phone}
+                      </a>
+                    )}
 
-                {advertisement.email && (
-                  <a
-                    href={`mailto:${advertisement.email}`}
-                    className="flex min-h-14 items-center break-all rounded-xl border border-slate-200 px-5 py-4 font-semibold text-slate-800 transition hover:bg-slate-50"
-                  >
-                    📧 {advertisement.email}
-                  </a>
-                )}
-              </div>
+                    {advertisement.email && (
+                      <a
+                        href={`mailto:${advertisement.email}`}
+                        className="flex min-h-14 items-center break-all rounded-xl border border-slate-200 px-5 py-4 font-semibold text-slate-800 transition hover:bg-slate-50"
+                      >
+                        📧 {advertisement.email}
+                      </a>
+                    )}
+                  </div>
 
-              <Link
-                href={`/wiadomosci/nowa?ad=${advertisement.id}`}
-                className="mt-6 flex w-full items-center justify-center rounded-xl bg-blue-700 px-6 py-4 text-center font-bold text-white transition hover:bg-blue-800 sm:w-auto"
-              >
-                💬 Napisz wiadomość
-              </Link>
+                  <Link
+                    href={`/wiadomosci/nowa?ad=${advertisement.id}`}
+                    className="mt-6 flex w-full items-center justify-center rounded-xl bg-blue-700 px-6 py-4 text-center font-bold text-white transition hover:bg-blue-800 sm:w-auto"
+                  >
+                    💬 Napisz wiadomość
+                  </Link>
+                </>
+              )}
             </section>
 
             <hr className="my-8 border-slate-200" />
@@ -205,7 +237,6 @@ export default async function AdvertisementPage({
                 </div>
               </div>
             </section>
-
           </div>
         </article>
 
@@ -215,7 +246,6 @@ export default async function AdvertisementPage({
             advertisementId={advertisement.id}
           />
         )}
-
       </div>
     </main>
   );

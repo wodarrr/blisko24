@@ -10,29 +10,16 @@ export async function getAdvertisement(id: string) {
     return null;
   }
 
-  const { error: viewsError } = await supabase.rpc(
-    "increment_views",
-    {
-      advertisement_id: advertisementId,
-    }
-  );
-
-  if (viewsError) {
-    console.error(
-      "Błąd zwiększania liczby wyświetleń:",
-      viewsError
-    );
-  }
-
   const { data, error } = await supabase
     .from("advertisements")
     .select(`
       *,
-      profiles (
+      profiles!advertisements_user_id_fkey (
         name,
         city,
         avatar_url,
         verified,
+        last_seen,
         reviews!reviews_user_id_fkey (
           rating
         )
@@ -51,15 +38,32 @@ export async function getAdvertisement(id: string) {
       referencedTable: "advertisement_images",
       ascending: true,
     })
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error(
       "Błąd pobierania ogłoszenia:",
       error
     );
-
     return null;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const { error: viewsError } = await supabase.rpc(
+    "increment_views",
+    {
+      advertisement_id: advertisementId,
+    }
+  );
+
+  if (viewsError) {
+    console.error(
+      "Błąd zwiększania liczby wyświetleń:",
+      viewsError
+    );
   }
 
   return data;

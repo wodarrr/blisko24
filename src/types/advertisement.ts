@@ -36,6 +36,7 @@ export interface Advertisement {
     city: string | null;
     avatar_url: string | null;
     verified?: boolean;
+    last_seen?: string | null;
 
     reviews?: {
       rating: number | string | null;

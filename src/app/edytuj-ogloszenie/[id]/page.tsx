@@ -579,6 +579,13 @@ export default function EditAdvertisementPage() {
           price,
           phone,
           email,
+
+          status: "pending",
+          approved_at: null,
+          approved_by: null,
+          rejected_at: null,
+          rejected_by: null,
+          rejection_reason: null,
         })
         .eq("id", advertisementId)
         .eq("user_id", user.id)
@@ -653,11 +660,11 @@ export default function EditAdvertisementPage() {
       });
 
       alert(
-        "Ogłoszenie i zdjęcia zostały zaktualizowane."
+        "Ogłoszenie zostało zapisane i ponownie wysłane do moderacji."
       );
 
       router.push(
-        `/ogloszenie/${advertisementId}`
+        "/moje-ogloszenia"
       );
 
       router.refresh();

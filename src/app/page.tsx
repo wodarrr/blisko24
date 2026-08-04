@@ -1,5 +1,6 @@
 import Header from "../components/Header";
 import Hero from "../components/Hero";
+import FreeJobSeekerBanner from "../components/FreeJobSeekerBanner";
 import HomeStats from "../components/HomeStats";
 import FeaturedAdvertisements from "../components/FeaturedAdvertisements";
 import Categories from "../components/Categories";
@@ -47,6 +48,8 @@ export default async function Home({
       <Header />
 
       <Hero />
+
+      <FreeJobSeekerBanner />
 
       <HomeStats />
 

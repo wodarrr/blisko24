@@ -330,7 +330,7 @@ export default function AdminPage() {
       })
       .eq("id", advertisementId)
       .eq("status", "pending")
-      .select("id")
+      .select("id, user_id, title")
       .maybeSingle();
 
     setProcessingAdvertisementId(null);
@@ -355,6 +355,28 @@ export default function AdminPage() {
 
       await loadAdminData();
       return;
+    }
+
+    if (data.user_id) {
+      const { error: notificationError } =
+        await supabase
+          .from("notifications")
+          .insert({
+            user_id: data.user_id,
+            title: "Ogłoszenie opublikowane",
+            message: `Twoje ogłoszenie „${
+              data.title || "Bez tytułu"
+            }” zostało zaakceptowane i jest już widoczne publicznie.`,
+            type: "advertisement_approved",
+            is_read: false,
+          });
+
+      if (notificationError) {
+        console.error(
+          "Błąd tworzenia powiadomienia:",
+          notificationError
+        );
+      }
     }
 
     setAdvertisements((previous) =>
@@ -383,8 +405,30 @@ export default function AdminPage() {
       return;
     }
 
+    if (!currentAdminId) {
+      alert(
+        "Nie udało się ustalić konta administratora."
+      );
+      return;
+    }
+
+    const reason = window.prompt(
+      "Podaj krótki powód odrzucenia ogłoszenia:"
+    );
+
+    if (reason === null) return;
+
+    const normalizedReason = reason.trim();
+
+    if (!normalizedReason) {
+      alert(
+        "Podaj powód odrzucenia ogłoszenia."
+      );
+      return;
+    }
+
     const confirmed = window.confirm(
-      "Czy na pewno odrzucić i usunąć to ogłoszenie? Tej operacji nie można cofnąć."
+      "Czy na pewno odrzucić to ogłoszenie? Pozostanie ono w historii użytkownika ze statusem „Odrzucone”."
     );
 
     if (!confirmed) return;
@@ -393,40 +437,90 @@ export default function AdminPage() {
       advertisementId
     );
 
-    try {
-      await deleteAdvertisement(
-        advertisementId
-      );
+    const rejectedAt =
+      new Date().toISOString();
 
-      setAdvertisements((previous) =>
-        previous.filter(
-          (advertisement) =>
-            advertisement.id !==
-            advertisementId
-        )
-      );
+    const { data, error } = await supabase
+      .from("advertisements")
+      .update({
+        status: "rejected",
+        rejected_at: rejectedAt,
+        rejected_by: currentAdminId,
+        rejection_reason:
+          normalizedReason,
+        approved_at: null,
+        approved_by: null,
+      })
+      .eq("id", advertisementId)
+      .eq("status", "pending")
+      .select("id, user_id, title")
+      .maybeSingle();
 
-      setAdsCount((previous) =>
-        Math.max(0, previous - 1)
-      );
-
-      alert(
-        "Ogłoszenie zostało odrzucone i usunięte."
-      );
-    } catch (error) {
+    if (error) {
       console.error(
         "Błąd odrzucania ogłoszenia:",
         error
       );
 
+      setProcessingAdvertisementId(null);
+
       alert(
         "Nie udało się odrzucić ogłoszenia."
       );
-    } finally {
-      setProcessingAdvertisementId(
-        null
-      );
+
+      return;
     }
+
+    if (!data) {
+      setProcessingAdvertisementId(null);
+
+      alert(
+        "Ogłoszenie nie zostało odrzucone. Mogło już zmienić status."
+      );
+
+      await loadAdminData();
+      return;
+    }
+
+    if (data.user_id) {
+      const { error: notificationError } =
+        await supabase
+          .from("notifications")
+          .insert({
+            user_id: data.user_id,
+            title: "Ogłoszenie odrzucone",
+            message: `Twoje ogłoszenie „${
+              data.title || "Bez tytułu"
+            }” zostało odrzucone. Powód: ${normalizedReason}`,
+            type: "advertisement_rejected",
+            is_read: false,
+          });
+
+      if (notificationError) {
+        console.error(
+          "Błąd tworzenia powiadomienia:",
+          notificationError
+        );
+      }
+    }
+
+    setAdvertisements((previous) =>
+      previous.map((advertisement) =>
+        advertisement.id ===
+        advertisementId
+          ? {
+              ...advertisement,
+              status: "rejected",
+            }
+          : advertisement
+      )
+    );
+
+    setProcessingAdvertisementId(null);
+
+    alert(
+      "Ogłoszenie zostało odrzucone. Użytkownik otrzymał powiadomienie."
+    );
   }
 
   async function handleDelete(
@@ -613,7 +707,10 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <section className="mt-12 overflow-hidden rounded-3xl bg-white shadow">
+        <section
+  id="moderacja"
+  className="mt-12 overflow-hidden rounded-3xl bg-white shadow scroll-mt-28"
+>
           <div className="border-b border-slate-200 bg-orange-50 p-6 sm:p-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>

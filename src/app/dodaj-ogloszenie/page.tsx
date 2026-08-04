@@ -3,9 +3,13 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
 import { supabase } from "../../lib/supabase";
 import AdvertisementForm from "../../components/AdvertisementForm";
 import AdvertisementFields from "../../components/AdvertisementFields";
@@ -20,6 +24,13 @@ type PreviewImage = {
 
 export default function AddAdvertisementPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const fieldsContainerRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const [selectedCategory, setSelectedCategory] =
+    useState("");
 
   const [advertisement, setAdvertisement] = useState({
     title: "",
@@ -50,6 +61,31 @@ export default function AddAdvertisementPage() {
 
     checkUser();
   }, [router]);
+
+  useEffect(() => {
+    const categoryFromUrl =
+      searchParams
+        .get("category")
+        ?.trim() ?? "";
+
+    if (!categoryFromUrl) return;
+
+    const select =
+      fieldsContainerRef.current?.querySelector<
+        HTMLSelectElement
+      >('select[name="category"]');
+
+    if (!select) return;
+
+    select.value = categoryFromUrl;
+    setSelectedCategory(categoryFromUrl);
+
+    select.dispatchEvent(
+      new Event("change", {
+        bubbles: true,
+      })
+    );
+  }, [searchParams]);
 
   useEffect(() => {
     return () => {
@@ -172,6 +208,19 @@ export default function AddAdvertisementPage() {
 
       return updated;
     });
+  }
+
+  function handleCategoryChange(
+    event: React.ChangeEvent<HTMLDivElement>
+  ) {
+    const target = event.target;
+
+    if (
+      target instanceof HTMLSelectElement &&
+      target.name === "category"
+    ) {
+      setSelectedCategory(target.value);
+    }
   }
 
   async function handleSubmit(
@@ -481,7 +530,61 @@ export default function AddAdvertisementPage() {
         <AdvertisementForm
           onSubmit={handleSubmit}
         >
-          <AdvertisementFields />
+          <div
+            ref={fieldsContainerRef}
+            onChange={handleCategoryChange}
+          >
+            <AdvertisementFields />
+          </div>
+
+          {selectedCategory ===
+            "Szukam pracy" && (
+            <section className="rounded-2xl border border-green-200 bg-green-50 p-5">
+              <h2 className="text-lg font-extrabold text-green-800">
+                💙 Szukasz pracy? Nie płać.
+              </h2>
+
+              <p className="mt-2 leading-7 text-green-700">
+                Ogłoszenia kandydatów na BLISKO24
+                są zawsze bezpłatne. Nie pobieramy
+                opłat za publikację ani promocję.
+                Koszty dotarcia do kandydatów
+                ponoszą pracodawcy.
+              </p>
+            </section>
+          )}
+
+          {selectedCategory ===
+            "Oferuję pracę" && (
+            <section className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+              <h2 className="text-lg font-extrabold text-yellow-900">
+                🏢 Oferta pracy dla pracodawcy
+              </h2>
+
+              <p className="mt-2 leading-7 text-yellow-800">
+                Docelowo publikacja ofert pracy
+                będzie usługą płatną dla firm.
+                Obecnie system działa w trybie
+                testowym i nie pobiera opłat.
+              </p>
+            </section>
+          )}
+
+          {selectedCategory ===
+            "Oferuję usługi" && (
+            <section className="rounded-2xl border border-purple-200 bg-purple-50 p-5">
+              <h2 className="text-lg font-extrabold text-purple-800">
+                🛠️ Oferujesz usługi
+              </h2>
+
+              <p className="mt-2 leading-7 text-purple-700">
+                Dodanie ogłoszenia pozostaje
+                bezpłatne. Dodatkowe wyróżnienie
+                i reklama firmy będą dostępne
+                jako opcjonalne usługi płatne.
+              </p>
+            </section>
+          )}
 
           <div>
             <label className="mb-2 block font-semibold">

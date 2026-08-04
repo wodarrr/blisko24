@@ -29,7 +29,6 @@ function isPromotionActive(
   until?: string | null
 ) {
   if (!enabled) return false;
-
   if (!until) return true;
 
   const endDate = new Date(until);
@@ -57,11 +56,12 @@ export async function getAdvertisements(
     .from("advertisements")
     .select(`
       *,
-      profiles (
+      profiles!advertisements_user_id_fkey (
         name,
         city,
         avatar_url,
         verified,
+        last_seen,
         reviews!reviews_user_id_fkey (
           rating
         )
@@ -83,17 +83,11 @@ export async function getAdvertisements(
   }
 
   if (category?.trim()) {
-    query = query.eq(
-      "category",
-      category.trim()
-    );
+    query = query.eq("category", category.trim());
   }
 
   if (province?.trim()) {
-    query = query.eq(
-      "province",
-      province.trim()
-    );
+    query = query.eq("province", province.trim());
   }
 
   if (city?.trim()) {
@@ -103,11 +97,6 @@ export async function getAdvertisements(
     );
   }
 
-  /*
-   * Cena może być zapisana również jako tekst,
-   * dlatego filtrowanie i sortowanie cen wykonujemy
-   * bezpiecznie po pobraniu danych.
-   */
   if (
     sort !== "cheap" &&
     sort !== "expensive"
@@ -168,19 +157,15 @@ export async function getAdvertisements(
       "Błąd pobierania ogłoszeń:",
       error
     );
-
     return [];
   }
 
   let advertisements = [...(data ?? [])];
 
-  const numericMinPrice = parsePrice(
-    minPrice
-  );
-
-  const numericMaxPrice = parsePrice(
-    maxPrice
-  );
+  const numericMinPrice =
+    parsePrice(minPrice);
+  const numericMaxPrice =
+    parsePrice(maxPrice);
 
   if (numericMinPrice !== null) {
     advertisements =

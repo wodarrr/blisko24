@@ -28,35 +28,50 @@ export async function getAdminStats() {
     favorites: favorites ?? 0,
   };
 }
+
 export async function getAllAdvertisements() {
   const { data, error } = await supabase
     .from("advertisements")
     .select(`
       *,
-      profiles (
+      profiles!advertisements_user_id_fkey (
         name
       )
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", {
+      ascending: false,
+    });
 
   if (error) {
-    console.error(error);
+    console.error(
+      "Błąd pobierania ogłoszeń administratora:",
+      error
+    );
+
     return [];
   }
 
   return data ?? [];
 }
-export async function deleteAdvertisement(id: number) {
+
+export async function deleteAdvertisement(
+  id: number
+) {
   const { error } = await supabase
     .from("advertisements")
     .delete()
     .eq("id", id);
 
   if (error) {
-    console.error(error);
+    console.error(
+      "Błąd usuwania ogłoszenia:",
+      error
+    );
+
     throw error;
   }
 }
+
 export async function getAllUsers() {
   const { data, error } = await supabase
     .from("profiles")
@@ -66,14 +81,17 @@ export async function getAllUsers() {
     });
 
   if (error) {
-  console.log("REPORTS ERROR:");
-  console.log(error);
-  console.log(JSON.stringify(error, null, 2));
-  return [];
-}
+    console.error(
+      "Błąd pobierania użytkowników:",
+      error
+    );
+
+    return [];
+  }
 
   return data ?? [];
 }
+
 export async function getReports() {
   const { data, error } = await supabase
     .from("reports")
@@ -83,7 +101,11 @@ export async function getReports() {
     });
 
   if (error) {
-    console.log(error);
+    console.error(
+      "Błąd pobierania zgłoszeń:",
+      error
+    );
+
     return [];
   }
 

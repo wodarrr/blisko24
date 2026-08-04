@@ -20,6 +20,10 @@ type Advertisement = {
   approved_at: string | null;
   approved_by: string | null;
 
+  rejected_at: string | null;
+  rejected_by: string | null;
+  rejection_reason: string | null;
+
   promoted: boolean | null;
   promoted_until: string | null;
 
@@ -235,6 +239,9 @@ export default function MyAdvertisementsPage() {
         status,
         approved_at,
         approved_by,
+        rejected_at,
+        rejected_by,
+        rejection_reason,
         promoted,
         promoted_until,
         urgent,
@@ -574,7 +581,7 @@ export default function MyAdvertisementsPage() {
                             </div>
                           )}
 
-                        {!isApproved && (
+                        {advertisement.status === "pending" && (
                           <div className="mt-5 rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-6 text-yellow-900">
                             ⏳ To ogłoszenie zobaczysz na
                             swoim koncie, ale pozostali
@@ -582,6 +589,24 @@ export default function MyAdvertisementsPage() {
                             po akceptacji administratora.
                           </div>
                         )}
+
+                        {advertisement.status === "rejected" &&
+                          advertisement.rejection_reason && (
+                            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+                              <h3 className="font-bold text-red-700">❌ Ogłoszenie zostało odrzucone</h3>
+                              <p className="mt-3 text-sm text-red-700"><strong>Powód:</strong></p>
+                              <p className="mt-2 text-red-800">{advertisement.rejection_reason}</p>
+                              <p className="mt-4 text-sm text-slate-600">
+                                Możesz poprawić ogłoszenie i wysłać je ponownie.
+                              </p>
+                              <Link
+                                href={`/edytuj-ogloszenie/${advertisement.id}`}
+                                className="mt-4 inline-flex rounded-xl bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800"
+                              >
+                                ✏️ Popraw ogłoszenie
+                              </Link>
+                            </div>
+                          )}
 
                         {(promotedActive ||
                           urgentActive ||

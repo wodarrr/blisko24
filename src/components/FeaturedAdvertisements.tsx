@@ -7,11 +7,12 @@ export default async function FeaturedAdvertisements() {
     .from("advertisements")
     .select(`
       *,
-      profiles (
+      profiles!advertisements_user_id_fkey (
         name,
         city,
         avatar_url,
         verified,
+        last_seen,
         reviews!reviews_user_id_fkey (
           rating
         )
@@ -20,6 +21,7 @@ export default async function FeaturedAdvertisements() {
         id
       )
     `)
+    .eq("status", "approved")
     .eq("promoted", true)
     .order("promoted_until", {
       ascending: false,
@@ -35,7 +37,6 @@ export default async function FeaturedAdvertisements() {
       "Błąd pobierania promowanych ogłoszeń:",
       error
     );
-
     return null;
   }
 
@@ -46,7 +47,6 @@ export default async function FeaturedAdvertisements() {
   return (
     <section className="bg-gradient-to-b from-yellow-50/70 to-gray-100 py-12 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-yellow-700">
@@ -80,7 +80,6 @@ export default async function FeaturedAdvertisements() {
             />
           ))}
         </div>
-
       </div>
     </section>
   );

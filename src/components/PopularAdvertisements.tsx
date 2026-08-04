@@ -7,11 +7,12 @@ export default async function PopularAdvertisements() {
     .from("advertisements")
     .select(`
       *,
-      profiles (
+      profiles!advertisements_user_id_fkey (
         name,
         city,
         avatar_url,
         verified,
+        last_seen,
         reviews!reviews_user_id_fkey (
           rating
         )
@@ -34,7 +35,6 @@ export default async function PopularAdvertisements() {
       "Błąd pobierania popularnych ogłoszeń:",
       error
     );
-
     return null;
   }
 
@@ -45,7 +45,6 @@ export default async function PopularAdvertisements() {
   return (
     <section className="bg-white py-12 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-red-600">
@@ -79,7 +78,6 @@ export default async function PopularAdvertisements() {
             />
           ))}
         </div>
-
       </div>
     </section>
   );
