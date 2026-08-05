@@ -1,50 +1,105 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
-import AccountCard from "../../components/account/AccountCard";
 
-type ProfileForm = {
+import AccountCard from "../../components/account/AccountCard";
+import { supabase } from "../../lib/supabase";
+
+type AccountType = "candidate" | "employer" | "both";
+
+type DashboardProfile = {
+  account_type: AccountType;
   name: string;
   city: string;
   description: string;
-  phone: string;
-  website: string;
   company_name: string;
+  company_description: string;
+  candidate_role: string;
+  candidate_skills: string[];
+  preferred_province: string;
+  preferred_city: string;
+  work_modes: string[];
+  open_to_job_offers: boolean;
+  contact_sharing_consent: boolean;
 };
+
+type OnboardingStep = {
+  id: string;
+  label: string;
+  description: string;
+  completed: boolean;
+  href: string;
+};
+
+const emptyProfile: DashboardProfile = {
+  account_type: "candidate",
+  name: "",
+  city: "",
+  description: "",
+  company_name: "",
+  company_description: "",
+  candidate_role: "",
+  candidate_skills: [],
+  preferred_province: "",
+  preferred_city: "",
+  work_modes: [],
+  open_to_job_offers: false,
+  contact_sharing_consent: false,
+};
+
+function normalizeAccountType(value: unknown): AccountType {
+  if (value === "employer" || value === "both") {
+    return value;
+  }
+
+  return "candidate";
+}
+
+function accountTypeLabel(accountType: AccountType) {
+  if (accountType === "candidate") {
+    return "Kandydat";
+  }
+
+  if (accountType === "employer") {
+    return "Pracodawca";
+  }
+
+  return "Kandydat i pracodawca";
+}
 
 export default function KontoPage() {
   const router = useRouter();
 
   const [currentUserId, setCurrentUserId] = useState("");
   const [email, setEmail] = useState("");
+  const [privatePhone, setPrivatePhone] = useState("");
 
   const [adsCount, setAdsCount] = useState(0);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [messagesCount, setMessagesCount] = useState(0);
   const [viewsCount, setViewsCount] = useState(0);
+  const [activeAlertsCount, setActiveAlertsCount] = useState(0);
+
+  const [profile, setProfile] =
+    useState<DashboardProfile>(emptyProfile);
 
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  const [profile, setProfile] = useState<ProfileForm>({
-    name: "",
-    city: "",
-    description: "",
-    phone: "",
-    website: "",
-    company_name: "",
-  });
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadAccount() {
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (cancelled) return;
+
+      if (userError || !user) {
         router.replace("/logowanie");
         return;
       }
@@ -57,16 +112,25 @@ export default function KontoPage() {
         advertisementsResult,
         favoritesResult,
         conversationsResult,
+        contactResult,
+        alertsResult,
       ] = await Promise.all([
         supabase
           .from("profiles")
           .select(`
+            account_type,
             name,
             city,
             description,
-            phone,
-            website,
-            company_name
+            company_name,
+            company_description,
+            candidate_role,
+            candidate_skills,
+            preferred_province,
+            preferred_city,
+            work_modes,
+            open_to_job_offers,
+            contact_sharing_consent
           `)
           .eq("id", user.id)
           .maybeSingle(),
@@ -92,30 +156,107 @@ export default function KontoPage() {
           .or(
             `buyer_id.eq.${user.id},seller_id.eq.${user.id}`
           ),
+
+        supabase
+          .from("candidate_contacts")
+          .select("phone")
+          .eq("candidate_id", user.id)
+          .maybeSingle(),
+
+        supabase
+          .from("employer_alerts")
+          .select("*", {
+            count: "exact",
+            head: true,
+          })
+          .eq("user_id", user.id)
+          .eq("active", true),
       ]);
+
+      if (cancelled) return;
 
       if (profileResult.error) {
         console.error(
           "Błąd pobierania profilu:",
           profileResult.error
         );
+
+        setErrorMessage(
+          "Nie udało się pobrać danych profilu. Odśwież stronę i spróbuj ponownie."
+        );
       }
 
       if (profileResult.data) {
+        const data = profileResult.data;
+
         setProfile({
-          name: profileResult.data.name ?? "",
-          city: profileResult.data.city ?? "",
-          description:
-            profileResult.data.description ?? "",
-          phone: profileResult.data.phone ?? "",
-          website: profileResult.data.website ?? "",
-          company_name:
-            profileResult.data.company_name ?? "",
+          account_type: normalizeAccountType(
+            data.account_type
+          ),
+          name: data.name ?? "",
+          city: data.city ?? "",
+          description: data.description ?? "",
+          company_name: data.company_name ?? "",
+          company_description:
+            data.company_description ?? "",
+          candidate_role: data.candidate_role ?? "",
+          candidate_skills: Array.isArray(
+            data.candidate_skills
+          )
+            ? data.candidate_skills
+            : [],
+          preferred_province:
+            data.preferred_province ?? "",
+          preferred_city: data.preferred_city ?? "",
+          work_modes: Array.isArray(data.work_modes)
+            ? data.work_modes
+            : [],
+          open_to_job_offers:
+            data.open_to_job_offers === true,
+          contact_sharing_consent:
+            data.contact_sharing_consent === true,
         });
       }
 
+      if (advertisementsResult.error) {
+        console.error(
+          "Błąd pobierania ogłoszeń:",
+          advertisementsResult.error
+        );
+      }
+
+      if (favoritesResult.error) {
+        console.error(
+          "Błąd pobierania ulubionych:",
+          favoritesResult.error
+        );
+      }
+
+      if (conversationsResult.error) {
+        console.error(
+          "Błąd pobierania rozmów:",
+          conversationsResult.error
+        );
+      }
+
+      if (contactResult.error) {
+        console.error(
+          "Błąd pobierania prywatnego kontaktu:",
+          contactResult.error
+        );
+      }
+
+      if (alertsResult.error) {
+        console.error(
+          "Błąd pobierania alertów pracodawcy:",
+          alertsResult.error
+        );
+      }
+
+      setPrivatePhone(contactResult.data?.phone ?? "");
       setAdsCount(advertisementsResult.count ?? 0);
       setFavoritesCount(favoritesResult.count ?? 0);
+      setActiveAlertsCount(alertsResult.count ?? 0);
 
       const totalViews =
         advertisementsResult.data?.reduce(
@@ -149,67 +290,176 @@ export default function KontoPage() {
           );
         }
 
-        setMessagesCount(count ?? 0);
+        if (!cancelled) {
+          setMessagesCount(count ?? 0);
+        }
       }
 
-      setLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+      }
     }
 
     loadAccount();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
-  function updateProfileField(
-    field: keyof ProfileForm,
-    value: string
-  ) {
-    setProfile((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-  }
+  const candidateEnabled =
+    profile.account_type === "candidate" ||
+    profile.account_type === "both";
 
-  async function saveProfile(
-    event: React.FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
+  const employerEnabled =
+    profile.account_type === "employer" ||
+    profile.account_type === "both";
 
-    if (!currentUserId) return;
+  const onboardingSteps = useMemo(() => {
+    const steps: OnboardingStep[] = [];
 
-    if (!profile.name.trim()) {
-      alert("Wpisz imię, nazwę użytkownika lub nazwę firmy.");
-      return;
-    }
-
-    setSaving(true);
-
-    const { error } = await supabase
-      .from("profiles")
-      .upsert(
+    if (candidateEnabled) {
+      steps.push(
         {
-          id: currentUserId,
-          name: profile.name.trim(),
-          city: profile.city.trim(),
-          description: profile.description.trim(),
-          phone: profile.phone.trim(),
-          website: profile.website.trim(),
-          company_name: profile.company_name.trim(),
+          id: "profile-name",
+          label: "Uzupełnij nazwę profilu",
+          description:
+            "Podaj imię albo nazwę, pod którą chcesz występować.",
+          completed: profile.name.trim().length > 0,
+          href: "/ustawienia/profil",
         },
         {
-          onConflict: "id",
+          id: "candidate-description",
+          label: "Napisz kilka zdań o sobie",
+          description:
+            "Krótki opis pomaga pracodawcy poznać kandydata.",
+          completed: profile.description.trim().length > 0,
+          href: "/ustawienia/profil",
+        },
+        {
+          id: "candidate-role",
+          label: "Wpisz poszukiwane stanowisko",
+          description:
+            "To najważniejsza informacja dla inteligentnego dopasowania.",
+          completed: profile.candidate_role.trim().length > 0,
+          href: "/ustawienia/profil",
+        },
+        {
+          id: "candidate-skills",
+          label: "Wybierz umiejętności",
+          description:
+            "Dodaj przynajmniej jedną umiejętność lub uprawnienie.",
+          completed: profile.candidate_skills.length > 0,
+          href: "/ustawienia/profil",
+        },
+        {
+          id: "candidate-location",
+          label: "Określ preferowaną lokalizację",
+          description:
+            "Wybierz województwo, miasto albo uzupełnij miasto profilu.",
+          completed:
+            profile.preferred_province.trim().length > 0 ||
+            profile.preferred_city.trim().length > 0 ||
+            profile.city.trim().length > 0,
+          href: "/ustawienia/profil",
+        },
+        {
+          id: "candidate-work-mode",
+          label: "Wybierz formę pracy",
+          description:
+            "Zaznacz pracę stacjonarną, hybrydową lub zdalną.",
+          completed: profile.work_modes.length > 0,
+          href: "/ustawienia/profil",
+        },
+        {
+          id: "candidate-visible",
+          label: "Włącz propozycje pracy",
+          description:
+            "Dzięki temu profil pojawi się w wyszukiwarce pracodawców.",
+          completed: profile.open_to_job_offers,
+          href: "/ustawienia/profil",
+        },
+        {
+          id: "candidate-contact",
+          label: "Dodaj prywatny kontakt i zgodę",
+          description:
+            "Numer pozostanie ukryty do prawidłowego odblokowania przez pracodawcę.",
+          completed:
+            privatePhone.trim().length > 0 &&
+            profile.contact_sharing_consent,
+          href: "/ustawienia/profil",
         }
       );
-
-    setSaving(false);
-
-    if (error) {
-      console.error("Błąd zapisu profilu:", error);
-      alert("Nie udało się zapisać profilu.");
-      return;
     }
 
-    alert("Profil został zapisany.");
-    router.refresh();
-  }
+    if (employerEnabled) {
+      if (!steps.some((step) => step.id === "profile-name")) {
+        steps.push({
+          id: "profile-name",
+          label: "Uzupełnij nazwę profilu",
+          description:
+            "Podaj nazwę osoby odpowiedzialnej za konto.",
+          completed: profile.name.trim().length > 0,
+          href: "/ustawienia/profil",
+        });
+      }
+
+      steps.push(
+        {
+          id: "company-name",
+          label: "Dodaj nazwę firmy",
+          description:
+            "Kandydat powinien wiedzieć, kto szuka pracownika.",
+          completed: profile.company_name.trim().length > 0,
+          href: "/ustawienia/profil",
+        },
+        {
+          id: "company-description",
+          label: "Opisz firmę",
+          description:
+            "Napisz krótko, czym zajmuje się firma i kogo zatrudnia.",
+          completed:
+            profile.company_description.trim().length > 0,
+          href: "/ustawienia/profil",
+        },
+        {
+          id: "company-city",
+          label: "Uzupełnij miasto",
+          description:
+            "Lokalizacja pomaga znaleźć kandydatów w pobliżu.",
+          completed: profile.city.trim().length > 0,
+          href: "/ustawienia/profil",
+        },
+        {
+          id: "employer-alert",
+          label: "Utwórz pierwszy alert kandydata",
+          description:
+            "Zapisz kryteria, a BLISKO24 będzie szukać dopasowań automatycznie.",
+          completed: activeAlertsCount > 0,
+          href: "/znajdz-kandydata",
+        }
+      );
+    }
+
+    return steps;
+  }, [
+    activeAlertsCount,
+    candidateEnabled,
+    employerEnabled,
+    privatePhone,
+    profile,
+  ]);
+
+  const completedSteps = onboardingSteps.filter(
+    (step) => step.completed
+  ).length;
+
+  const completionPercentage =
+    onboardingSteps.length > 0
+      ? Math.round(
+          (completedSteps / onboardingSteps.length) * 100
+        )
+      : 0;
 
   async function logout() {
     await supabase.auth.signOut();
@@ -220,9 +470,7 @@ export default function KontoPage() {
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gray-100">
-        <p className="text-lg">
-          Ładowanie konta...
-        </p>
+        <p className="text-lg">Ładowanie konta...</p>
       </main>
     );
   }
@@ -232,60 +480,75 @@ export default function KontoPage() {
     profile.company_name.trim() ||
     "Użytkowniku";
 
+  const nextIncompleteStep = onboardingSteps.find(
+    (step) => !step.completed
+  );
+
   return (
     <main className="min-h-screen bg-gray-100">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+        {errorMessage && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5 font-semibold text-red-700">
+            {errorMessage}
+          </div>
+        )}
 
         <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-blue-800 via-blue-700 to-cyan-500 p-6 text-white shadow-xl sm:p-8">
           <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
-
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-100">
-                Panel użytkownika
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-100">
+                  Panel użytkownika
+                </p>
+
+                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white">
+                  {accountTypeLabel(profile.account_type)}
+                </span>
+              </div>
 
               <h1 className="mt-3 text-3xl font-extrabold sm:text-4xl">
                 👋 Witaj, {displayName}
               </h1>
 
               <p className="mt-3 max-w-2xl text-blue-100">
-                Zarządzaj ogłoszeniami, wiadomościami,
-                profilem i aktywnością w jednym miejscu.
+                Dokończ konfigurację konta, a później zarządzaj profilem, ogłoszeniami i aktywnością w jednym miejscu.
               </p>
             </div>
 
             <Link
-              href="/dodaj-ogloszenie"
+              href={
+                nextIncompleteStep?.href ??
+                (employerEnabled
+                  ? "/znajdz-kandydata"
+                  : `/profil/${currentUserId}`)
+              }
               className="flex w-full items-center justify-center rounded-2xl bg-white px-6 py-4 font-extrabold text-blue-700 shadow-lg transition hover:-translate-y-0.5 hover:bg-blue-50 lg:w-auto"
             >
-              ➕ Dodaj nowe ogłoszenie
+              {nextIncompleteStep
+                ? "Dokończ konfigurację"
+                : employerEnabled
+                  ? "Znajdź kandydata"
+                  : "Zobacz mój profil"}
             </Link>
-
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-              <p className="text-sm text-blue-100">
-                Ogłoszenia
-              </p>
+              <p className="text-sm text-blue-100">Ogłoszenia</p>
               <p className="mt-1 text-3xl font-extrabold">
                 {adsCount}
               </p>
             </div>
 
             <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-              <p className="text-sm text-blue-100">
-                Wyświetlenia
-              </p>
+              <p className="text-sm text-blue-100">Wyświetlenia</p>
               <p className="mt-1 text-3xl font-extrabold">
                 {viewsCount}
               </p>
             </div>
 
             <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-              <p className="text-sm text-blue-100">
-                Nowe wiadomości
-              </p>
+              <p className="text-sm text-blue-100">Nowe wiadomości</p>
               <p className="mt-1 text-3xl font-extrabold">
                 {messagesCount}
               </p>
@@ -293,13 +556,109 @@ export default function KontoPage() {
 
             <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
               <p className="text-sm text-blue-100">
-                Ulubione
+                {employerEnabled
+                  ? "Aktywne alerty"
+                  : "Ulubione"}
               </p>
               <p className="mt-1 text-3xl font-extrabold">
-                {favoritesCount}
+                {employerEnabled
+                  ? activeAlertsCount
+                  : favoritesCount}
               </p>
             </div>
           </div>
+        </section>
+
+        <section className="mt-10 overflow-hidden rounded-3xl bg-white shadow">
+          <div className="border-b border-slate-200 p-5 sm:p-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.18em] text-green-700">
+                  Pierwsze kroki
+                </p>
+
+                <h2 className="mt-2 text-3xl font-extrabold text-slate-900">
+                  Przygotuj konto do działania
+                </h2>
+
+                <p className="mt-2 text-slate-500">
+                  Ukończono {completedSteps} z {onboardingSteps.length} kroków.
+                </p>
+              </div>
+
+              <p className="text-4xl font-extrabold text-green-700">
+                {completionPercentage}%
+              </p>
+            </div>
+
+            <div
+              className="mt-6 h-4 overflow-hidden rounded-full bg-slate-100"
+              role="progressbar"
+              aria-label="Ukończenie konfiguracji konta"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={completionPercentage}
+            >
+              <div
+                className="h-full rounded-full bg-green-600 transition-all"
+                style={{
+                  width: `${completionPercentage}%`,
+                }}
+              />
+            </div>
+          </div>
+
+          {completionPercentage === 100 ? (
+            <div className="border-b border-green-200 bg-green-50 p-5 sm:p-7">
+              <p className="text-xl font-extrabold text-green-800">
+                ✅ Konto jest gotowe do działania
+              </p>
+
+              <p className="mt-2 text-green-700">
+                Wszystkie najważniejsze elementy zostały uzupełnione.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-200">
+              {onboardingSteps.map((step) => (
+                <Link
+                  key={step.id}
+                  href={step.href}
+                  className="flex items-start gap-4 p-5 transition hover:bg-slate-50 sm:px-8"
+                >
+                  <span
+                    className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold ${
+                      step.completed
+                        ? "bg-green-100 text-green-700"
+                        : "bg-orange-100 text-orange-700"
+                    }`}
+                  >
+                    {step.completed ? "✓" : "!"}
+                  </span>
+
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`font-extrabold ${
+                        step.completed
+                          ? "text-green-800"
+                          : "text-slate-900"
+                      }`}
+                    >
+                      {step.label}
+                    </p>
+
+                    <p className="mt-1 text-sm leading-6 text-slate-500">
+                      {step.description}
+                    </p>
+                  </div>
+
+                  <span className="shrink-0 font-bold text-blue-700">
+                    {step.completed ? "Gotowe" : "Uzupełnij →"}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="mt-10">
@@ -314,24 +673,48 @@ export default function KontoPage() {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {employerEnabled && (
+              <>
+                <AccountCard
+                  title="Znajdź kandydata"
+                  href="/znajdz-kandydata"
+                  icon="🎯"
+                  description="Utwórz alert i wyszukaj odpowiednią osobę."
+                  accent="green"
+                />
+
+                <AccountCard
+                  title="Moje dopasowania"
+                  href="/moje-dopasowania"
+                  icon="🤝"
+                  description="Zobacz kandydatów dopasowanych przez BLISKO SCORE."
+                  accent="blue"
+                />
+              </>
+            )}
 
             <AccountCard
               title="Moje ogłoszenia"
               value={adsCount}
               href="/moje-ogloszenia"
               icon="📋"
-              description="Edytuj, usuwaj i kontroluj swoje oferty."
+              description="Edytuj, usuwaj i kontroluj swoje ogłoszenia."
               accent="blue"
             />
 
-            <AccountCard
-              title="Ulubione"
-              value={favoritesCount}
-              href="/ulubione"
-              icon="❤️"
-              description="Wróć do zapisanych ofert."
-              accent="red"
-            />
+            {candidateEnabled && (
+              <AccountCard
+                title="Mój publiczny profil"
+                href={
+                  currentUserId
+                    ? `/profil/${currentUserId}`
+                    : "/konto"
+                }
+                icon="👤"
+                description="Sprawdź, jak widzą Cię inni użytkownicy."
+                accent="yellow"
+              />
+            )}
 
             <AccountCard
               title="Nowe wiadomości"
@@ -343,207 +726,48 @@ export default function KontoPage() {
             />
 
             <AccountCard
-              title="Mój publiczny profil"
-              href={
-                currentUserId
-                  ? `/profil/${currentUserId}`
-                  : "/konto"
-              }
-              icon="👤"
-              description="Sprawdź, jak widzą Cię inni."
-              accent="yellow"
-            />
-
-            <AccountCard
               title="Powiadomienia"
               href="/powiadomienia"
               icon="🔔"
-              description="Zobacz najnowszą aktywność."
+              description="Zobacz najnowszą aktywność na koncie."
               accent="yellow"
             />
 
             <AccountCard
-  title="Edytuj profil"
-  href="/ustawienia/profil"
-  icon="⚙️"
-/>
+              title="Edytuj profil"
+              href="/ustawienia/profil"
+              icon="⚙️"
+              description="Zmień typ konta i uzupełnij swoje dane."
+              accent="blue"
+            />
 
+            <AccountCard
+              title="Ulubione"
+              value={favoritesCount}
+              href="/ulubione"
+              icon="❤️"
+              description="Wróć do zapisanych ogłoszeń."
+              accent="red"
+            />
           </div>
         </section>
 
-        <section className="mt-12 rounded-3xl bg-white p-5 shadow sm:p-8">
-          <div className="mb-8">
-            <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
-              Profil
-            </p>
-
-            <h2 className="mt-1 text-3xl font-extrabold text-slate-900">
-              Edytuj swoje dane
-            </h2>
-
-            <p className="mt-2 text-gray-500">
-              Informacje będą widoczne na profilu i w rozmowach.
+        <section className="mt-12 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-7">
+          <div>
+            <p className="font-bold text-slate-900">Zalogowano jako</p>
+            <p className="mt-1 break-all text-sm text-slate-500">
+              {email}
             </p>
           </div>
 
-          <form
-            onSubmit={saveProfile}
-            className="space-y-6"
+          <button
+            type="button"
+            onClick={logout}
+            className="rounded-xl bg-red-600 px-6 py-3 font-bold text-white transition hover:bg-red-700"
           >
-            <div>
-              <label className="mb-2 block font-semibold">
-                Adres e-mail
-              </label>
-
-              <input
-                type="email"
-                value={email}
-                disabled
-                className="w-full rounded-xl border bg-gray-100 p-3 text-gray-500"
-              />
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block font-semibold">
-                  Imię, nazwa użytkownika lub firmy
-                </label>
-
-                <input
-                  type="text"
-                  value={profile.name}
-                  onChange={(event) =>
-                    updateProfileField(
-                      "name",
-                      event.target.value
-                    )
-                  }
-                  placeholder="Np. Krzysztof lub Firma ABC"
-                  className="w-full rounded-xl border p-3"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block font-semibold">
-                  Miasto
-                </label>
-
-                <input
-                  type="text"
-                  value={profile.city}
-                  onChange={(event) =>
-                    updateProfileField(
-                      "city",
-                      event.target.value
-                    )
-                  }
-                  placeholder="Np. Piekary Śląskie"
-                  className="w-full rounded-xl border p-3"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-2 block font-semibold">
-                O mnie
-              </label>
-
-              <textarea
-                value={profile.description}
-                onChange={(event) =>
-                  updateProfileField(
-                    "description",
-                    event.target.value
-                  )
-                }
-                rows={5}
-                placeholder="Napisz kilka zdań o sobie albo firmie..."
-                className="w-full rounded-xl border p-3"
-              />
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block font-semibold">
-                  Telefon
-                </label>
-
-                <input
-                  type="tel"
-                  value={profile.phone}
-                  onChange={(event) =>
-                    updateProfileField(
-                      "phone",
-                      event.target.value
-                    )
-                  }
-                  placeholder="Np. 600 123 456"
-                  className="w-full rounded-xl border p-3"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block font-semibold">
-                  Nazwa firmy
-                </label>
-
-                <input
-                  type="text"
-                  value={profile.company_name}
-                  onChange={(event) =>
-                    updateProfileField(
-                      "company_name",
-                      event.target.value
-                    )
-                  }
-                  placeholder="Opcjonalnie"
-                  className="w-full rounded-xl border p-3"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-2 block font-semibold">
-                Strona internetowa
-              </label>
-
-              <input
-                type="url"
-                value={profile.website}
-                onChange={(event) =>
-                  updateProfileField(
-                    "website",
-                    event.target.value
-                  )
-                }
-                placeholder="https://twojastrona.pl"
-                className="w-full rounded-xl border p-3"
-              />
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full rounded-xl bg-blue-700 px-8 py-4 font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-              >
-                {saving
-                  ? "Zapisywanie..."
-                  : "Zapisz profil"}
-              </button>
-
-              <button
-                type="button"
-                onClick={logout}
-                className="w-full rounded-xl bg-red-600 px-8 py-4 font-bold text-white hover:bg-red-700 sm:w-auto"
-              >
-                🚪 Wyloguj
-              </button>
-            </div>
-          </form>
+            🚪 Wyloguj
+          </button>
         </section>
-
       </div>
     </main>
   );
