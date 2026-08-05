@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Suspense,
   useEffect,
   useMemo,
   useRef,
@@ -22,7 +23,7 @@ type PreviewImage = {
   previewUrl: string;
 };
 
-export default function AddAdvertisementPage() {
+function AddAdvertisementContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -849,5 +850,21 @@ export default function AddAdvertisementPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function AddAdvertisementPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
+          <div className="rounded-2xl bg-white px-8 py-6 text-center font-semibold text-slate-700 shadow">
+            Ładowanie formularza ogłoszenia...
+          </div>
+        </main>
+      }
+    >
+      <AddAdvertisementContent />
+    </Suspense>
   );
 }

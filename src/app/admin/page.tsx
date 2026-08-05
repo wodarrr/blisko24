@@ -7,10 +7,12 @@ import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
 import {
+  getAdminBetaMetrics,
   getAllAdvertisements,
   getAllUsers,
   getReports,
   deleteAdvertisement,
+  type AdminBetaMetrics,
 } from "../../lib/admin";
 
 import Stats from "../../components/admin/Stats";
@@ -42,6 +44,22 @@ type ModeratedAdvertisement =
     created_at?: string | null;
     user_id?: string | null;
   };
+
+const EMPTY_BETA_METRICS: AdminBetaMetrics = {
+  totalUsers: 0,
+  candidateAccounts: 0,
+  employerAccounts: 0,
+  bothAccounts: 0,
+  openCandidates: 0,
+  newUsers7d: 0,
+  totalMatches: 0,
+  newMatches: 0,
+  activeAlerts: 0,
+  unlockedContacts: 0,
+  freeUnlocks: 0,
+  paidUnlocks: 0,
+  pendingUnlocks: 0,
+};
 
 export default function AdminPage() {
   const router = useRouter();
@@ -77,6 +95,11 @@ export default function AdminPage() {
 
   const [reportsCount, setReportsCount] =
     useState(0);
+
+  const [betaMetrics, setBetaMetrics] =
+    useState<AdminBetaMetrics>(
+      EMPTY_BETA_METRICS
+    );
 
   const [
     advertisements,
@@ -183,6 +206,7 @@ export default function AdminPage() {
         favoritesResult,
         reviewsResult,
         messagesResult,
+        betaMetricsData,
         advertisementsData,
         usersData,
         reportsData,
@@ -222,6 +246,8 @@ export default function AdminPage() {
             head: true,
           }),
 
+        getAdminBetaMetrics(),
+
         getAllAdvertisements(),
         getAllUsers(),
         getReports(),
@@ -248,6 +274,8 @@ export default function AdminPage() {
       setMessagesCount(
         messagesResult.count ?? 0
       );
+
+      setBetaMetrics(betaMetricsData);
 
       const safeAdvertisements =
         Array.isArray(advertisementsData)
@@ -660,6 +688,7 @@ export default function AdminPage() {
           users={usersCount}
           ads={adsCount}
           favorites={favoritesCount}
+          betaMetrics={betaMetrics}
         />
 
         <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
