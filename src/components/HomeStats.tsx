@@ -1,5 +1,7 @@
 import { supabase } from "../lib/supabase";
 
+const PUBLIC_STATS_THRESHOLD = 100;
+
 type StatCardProps = {
   icon: string;
   label: string;
@@ -64,21 +66,35 @@ function StatCard({
 }
 
 export default async function HomeStats() {
+  const advertisementsResult = await supabase
+    .from("advertisements")
+    .select("*", {
+      count: "exact",
+      head: true,
+    });
+
+  if (advertisementsResult.error) {
+    console.error(
+      "Błąd pobierania liczby ogłoszeń:",
+      advertisementsResult.error
+    );
+
+    return null;
+  }
+
+  const advertisementsCount = advertisementsResult.count ?? 0;
+
+  if (advertisementsCount < PUBLIC_STATS_THRESHOLD) {
+    return null;
+  }
+
   const [
-    advertisementsResult,
     usersResult,
     conversationsResult,
     favoritesResult,
     companiesResult,
     viewsResult,
   ] = await Promise.all([
-    supabase
-      .from("advertisements")
-      .select("*", {
-        count: "exact",
-        head: true,
-      }),
-
     supabase
       .from("profiles")
       .select("*", {
@@ -113,13 +129,6 @@ export default async function HomeStats() {
       .from("advertisements")
       .select("views"),
   ]);
-
-  if (advertisementsResult.error) {
-    console.error(
-      "Błąd pobierania liczby ogłoszeń:",
-      advertisementsResult.error
-    );
-  }
 
   if (usersResult.error) {
     console.error(
@@ -166,7 +175,6 @@ export default async function HomeStats() {
   return (
     <section className="bg-white py-12 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-700">
             BLISKO24 w liczbach
@@ -183,11 +191,10 @@ export default async function HomeStats() {
         </div>
 
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
-
           <StatCard
             icon="📄"
             label="Ogłoszenia"
-            value={advertisementsResult.count ?? 0}
+            value={advertisementsCount}
             description="Aktywne oferty użytkowników."
             accent="blue"
           />
@@ -223,11 +230,9 @@ export default async function HomeStats() {
             description="Profile z uzupełnioną nazwą firmy."
             accent="yellow"
           />
-
         </div>
 
         <div className="mt-6 rounded-3xl bg-slate-900 px-6 py-6 text-white shadow-xl sm:flex sm:items-center sm:justify-between sm:px-8">
-
           <div>
             <p className="text-sm font-bold uppercase tracking-wide text-slate-300">
               Łączna aktywność
@@ -242,9 +247,7 @@ export default async function HomeStats() {
             Licznik rośnie za każdym razem, gdy ktoś otwiera szczegóły
             ogłoszenia.
           </p>
-
         </div>
-
       </div>
     </section>
   );

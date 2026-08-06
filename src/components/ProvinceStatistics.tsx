@@ -1,5 +1,7 @@
 import { supabase } from "../lib/supabase";
 
+const PUBLIC_STATS_THRESHOLD = 100;
+
 const provinces = [
   "Dolnośląskie",
   "Kujawsko-Pomorskie",
@@ -19,56 +21,102 @@ const provinces = [
   "Zachodniopomorskie",
 ];
 
+type ProvinceStatistic = {
+  province: string;
+  count: number | null;
+};
+
 export default async function ProvinceStatistics() {
+  const advertisementsResult = await supabase
+    .from("advertisements")
+    .select("*", {
+      count: "exact",
+      head: true,
+    });
 
-  const statistics = await Promise.all(
-    provinces.map(async (province) => {
+  if (advertisementsResult.error) {
+    console.error(
+      "Błąd pobierania liczby ogłoszeń dla statystyk województw:",
+      advertisementsResult.error
+    );
+  }
 
-      const { count } = await supabase
-        .from("advertisements")
-        .select("*", {
-          count: "exact",
-          head: true,
-        })
-        .eq("province", province);
+  const advertisementsCount = advertisementsResult.count ?? 0;
+  const showStatistics =
+    !advertisementsResult.error &&
+    advertisementsCount >= PUBLIC_STATS_THRESHOLD;
 
-      return {
-        province,
-        count: count ?? 0,
-      };
-    })
-  );
+  let statistics: ProvinceStatistic[] = provinces.map((province) => ({
+    province,
+    count: null,
+  }));
+
+  if (showStatistics) {
+    statistics = await Promise.all(
+      provinces.map(async (province) => {
+        const { count, error } = await supabase
+          .from("advertisements")
+          .select("*", {
+            count: "exact",
+            head: true,
+          })
+          .eq("province", province);
+
+        if (error) {
+          console.error(
+            `Błąd pobierania ogłoszeń dla województwa ${province}:`,
+            error
+          );
+
+          return {
+            province,
+            count: null,
+          };
+        }
+
+        return {
+          province,
+          count: count ?? 0,
+        };
+      })
+    );
+  }
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-16">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-900">
+          🇵🇱 Ogłoszenia według województw
+        </h2>
 
-      <h2 className="mb-8 text-3xl font-bold">
-        🇵🇱 Ogłoszenia według województw
-      </h2>
+        {!showStatistics && (
+          <p className="mt-3 text-slate-600">
+            Wybierz województwo i sprawdź lokalne możliwości w swojej
+            okolicy.
+          </p>
+        )}
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-
         {statistics.map((item) => (
-
           <div
             key={item.province}
-            className="flex items-center justify-between rounded-2xl bg-white p-5 shadow hover:shadow-lg transition"
+            className="flex items-center justify-between rounded-2xl bg-white p-5 shadow transition hover:shadow-lg"
           >
-
-            <span className="font-semibold">
+            <span className="font-semibold text-slate-800">
               {item.province}
             </span>
 
-            <span className="rounded-full bg-blue-100 px-4 py-2 font-bold text-blue-700">
-              {item.count}
-            </span>
-
+            {showStatistics &&
+              item.count !== null &&
+              item.count > 0 && (
+                <span className="rounded-full bg-blue-100 px-4 py-2 font-bold text-blue-700">
+                  {item.count.toLocaleString("pl-PL")}
+                </span>
+              )}
           </div>
-
         ))}
-
       </div>
-
     </section>
   );
 }
