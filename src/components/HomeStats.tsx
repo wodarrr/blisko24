@@ -1,6 +1,7 @@
 import { supabase } from "../lib/supabase";
 
 const PUBLIC_STATS_THRESHOLD = 100;
+const APPROVED_STATUS = "approved";
 
 type StatCardProps = {
   icon: string;
@@ -71,11 +72,12 @@ export default async function HomeStats() {
     .select("*", {
       count: "exact",
       head: true,
-    });
+    })
+    .eq("status", APPROVED_STATUS);
 
   if (advertisementsResult.error) {
     console.error(
-      "Błąd pobierania liczby ogłoszeń:",
+      "Błąd pobierania liczby zatwierdzonych ogłoszeń:",
       advertisementsResult.error
     );
 
@@ -127,7 +129,8 @@ export default async function HomeStats() {
 
     supabase
       .from("advertisements")
-      .select("views"),
+      .select("views")
+      .eq("status", APPROVED_STATUS),
   ]);
 
   if (usersResult.error) {
@@ -160,7 +163,7 @@ export default async function HomeStats() {
 
   if (viewsResult.error) {
     console.error(
-      "Błąd pobierania wyświetleń:",
+      "Błąd pobierania wyświetleń zatwierdzonych ogłoszeń:",
       viewsResult.error
     );
   }
@@ -195,7 +198,7 @@ export default async function HomeStats() {
             icon="📄"
             label="Ogłoszenia"
             value={advertisementsCount}
-            description="Aktywne oferty użytkowników."
+            description="Aktywne i zatwierdzone oferty użytkowników."
             accent="blue"
           />
 
@@ -244,8 +247,8 @@ export default async function HomeStats() {
           </div>
 
           <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300 sm:mt-0 sm:text-right">
-            Licznik rośnie za każdym razem, gdy ktoś otwiera szczegóły
-            ogłoszenia.
+            Licznik obejmuje wyłącznie zatwierdzone ogłoszenia widoczne
+            publicznie.
           </p>
         </div>
       </div>

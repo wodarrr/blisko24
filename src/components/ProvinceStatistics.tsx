@@ -1,6 +1,7 @@
 import { supabase } from "../lib/supabase";
 
 const PUBLIC_STATS_THRESHOLD = 100;
+const APPROVED_STATUS = "approved";
 
 const provinces = [
   "Dolnośląskie",
@@ -32,16 +33,18 @@ export default async function ProvinceStatistics() {
     .select("*", {
       count: "exact",
       head: true,
-    });
+    })
+    .eq("status", APPROVED_STATUS);
 
   if (advertisementsResult.error) {
     console.error(
-      "Błąd pobierania liczby ogłoszeń dla statystyk województw:",
+      "Błąd pobierania liczby zatwierdzonych ogłoszeń dla województw:",
       advertisementsResult.error
     );
   }
 
   const advertisementsCount = advertisementsResult.count ?? 0;
+
   const showStatistics =
     !advertisementsResult.error &&
     advertisementsCount >= PUBLIC_STATS_THRESHOLD;
@@ -60,11 +63,12 @@ export default async function ProvinceStatistics() {
             count: "exact",
             head: true,
           })
+          .eq("status", APPROVED_STATUS)
           .eq("province", province);
 
         if (error) {
           console.error(
-            `Błąd pobierania ogłoszeń dla województwa ${province}:`,
+            `Błąd pobierania zatwierdzonych ogłoszeń dla województwa ${province}:`,
             error
           );
 
