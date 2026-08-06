@@ -1,8 +1,14 @@
 import Link from "next/link";
+
 import { supabase } from "../lib/supabase";
 import AdvertisementCard from "./AdvertisementCard";
 
+const APPROVED_STATUS = "approved";
+const PROMOTED_ADVERTISEMENTS_LIMIT = 6;
+
 export default async function FeaturedAdvertisements() {
+  const currentDate = new Date().toISOString();
+
   const { data, error } = await supabase
     .from("advertisements")
     .select(`
@@ -21,8 +27,11 @@ export default async function FeaturedAdvertisements() {
         id
       )
     `)
-    .eq("status", "approved")
+    .eq("status", APPROVED_STATUS)
     .eq("promoted", true)
+    .or(
+      `promoted_until.is.null,promoted_until.gt.${currentDate}`
+    )
     .order("promoted_until", {
       ascending: false,
       nullsFirst: false,
@@ -30,17 +39,20 @@ export default async function FeaturedAdvertisements() {
     .order("created_at", {
       ascending: false,
     })
-    .limit(6);
+    .limit(PROMOTED_ADVERTISEMENTS_LIMIT);
 
   if (error) {
     console.error(
-      "Błąd pobierania promowanych ogłoszeń:",
+      "Błąd pobierania aktywnych promowanych ogłoszeń:",
       error
     );
+
     return null;
   }
 
-  if (!data || data.length === 0) {
+  const advertisements = data ?? [];
+
+  if (advertisements.length === 0) {
     return null;
   }
 
@@ -64,7 +76,7 @@ export default async function FeaturedAdvertisements() {
           </div>
 
           <Link
-            href="/?sort=promoted"
+            href="/?sort=promoted#ogloszenia"
             className="inline-flex w-full items-center justify-center rounded-xl border border-yellow-300 bg-white px-5 py-3 font-bold text-yellow-800 shadow-sm transition hover:bg-yellow-100 sm:w-auto"
           >
             Zobacz wszystkie
@@ -73,7 +85,7 @@ export default async function FeaturedAdvertisements() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((advertisement) => (
+          {advertisements.map((advertisement) => (
             <AdvertisementCard
               key={advertisement.id}
               advertisement={advertisement}

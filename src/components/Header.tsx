@@ -106,6 +106,13 @@ export default function Header() {
               Strona główna
             </Link>
 
+            <Link
+              href="/o-nas"
+              className="font-medium text-slate-700 transition hover:text-blue-700"
+            >
+              O nas
+            </Link>
+
             {canUseEmployerFeatures && (
               <>
                 <Link
@@ -174,6 +181,13 @@ export default function Header() {
                   className="rounded-xl px-4 py-3 font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700"
                 >
                   Strona główna
+                </Link>
+
+                <Link
+                  href="/o-nas"
+                  className="rounded-xl px-4 py-3 font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700"
+                >
+                  O nas
                 </Link>
 
                 {canUseEmployerFeatures && (

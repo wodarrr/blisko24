@@ -1,6 +1,11 @@
 import Link from "next/link";
+
 import { supabase } from "../lib/supabase";
 import AdvertisementCard from "./AdvertisementCard";
+
+const MIN_POPULAR_ADVERTISEMENTS = 3;
+const POPULAR_ADVERTISEMENTS_LIMIT = 6;
+const APPROVED_STATUS = "approved";
 
 export default async function PopularAdvertisements() {
   const { data, error } = await supabase
@@ -21,24 +26,31 @@ export default async function PopularAdvertisements() {
         id
       )
     `)
-    .eq("status", "approved")
+    .eq("status", APPROVED_STATUS)
+    .gt("views", 0)
     .order("views", {
       ascending: false,
     })
     .order("created_at", {
       ascending: false,
     })
-    .limit(6);
+    .limit(POPULAR_ADVERTISEMENTS_LIMIT);
 
   if (error) {
     console.error(
       "Błąd pobierania popularnych ogłoszeń:",
       error
     );
+
     return null;
   }
 
-  if (!data || data.length === 0) {
+  const advertisements = data ?? [];
+
+  if (
+    advertisements.length <
+    MIN_POPULAR_ADVERTISEMENTS
+  ) {
     return null;
   }
 
@@ -62,7 +74,7 @@ export default async function PopularAdvertisements() {
           </div>
 
           <Link
-            href="/?sort=popular"
+            href="/?sort=popular#ogloszenia"
             className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-800 shadow-sm transition hover:bg-slate-100 sm:w-auto"
           >
             Przeglądaj ogłoszenia
@@ -71,7 +83,7 @@ export default async function PopularAdvertisements() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((advertisement) => (
+          {advertisements.map((advertisement) => (
             <AdvertisementCard
               key={advertisement.id}
               advertisement={advertisement}
