@@ -86,10 +86,13 @@ export default function UsersTable({
   const [localUsers, setLocalUsers] =
     useState<AdminUser[]>(users);
 
-  const [search, setSearch] = useState("");
-
-  const [currentUserId, setCurrentUserId] =
+  const [search, setSearch] =
     useState("");
+
+  const [
+    currentUserId,
+    setCurrentUserId,
+  ] = useState("");
 
   const [
     processingUserId,
@@ -106,51 +109,81 @@ export default function UsersTable({
         data: { user },
       } = await supabase.auth.getUser();
 
-      setCurrentUserId(user?.id ?? "");
+      setCurrentUserId(
+        user?.id ?? ""
+      );
     }
 
     void loadCurrentUser();
   }, []);
 
-  const filteredUsers = useMemo(() => {
-    const phrase =
-      search.trim().toLowerCase();
+  const filteredUsers =
+    useMemo(() => {
+      const phrase =
+        search
+          .trim()
+          .toLowerCase();
 
-    if (!phrase) {
-      return localUsers;
-    }
+      if (!phrase) {
+        return localUsers;
+      }
 
-    return localUsers.filter((user) => {
-      const name =
-        user.name?.toLowerCase() ?? "";
+      return localUsers.filter(
+        (user) => {
+          const name =
+            user.name
+              ?.toLowerCase() ??
+            "";
 
-      const city =
-        user.city?.toLowerCase() ?? "";
+          const city =
+            user.city
+              ?.toLowerCase() ??
+            "";
 
-      const accountType =
-        user.account_type?.toLowerCase() ?? "";
+          const accountType =
+            user.account_type
+              ?.toLowerCase() ??
+            "";
 
-      return (
-        name.includes(phrase) ||
-        city.includes(phrase) ||
-        accountType.includes(phrase) ||
-        user.id
-          .toLowerCase()
-          .includes(phrase)
+          const adminText =
+            user.is_admin
+              ? "administrator admin"
+              : "";
+
+          return (
+            name.includes(
+              phrase
+            ) ||
+            city.includes(
+              phrase
+            ) ||
+            accountType.includes(
+              phrase
+            ) ||
+            adminText.includes(
+              phrase
+            ) ||
+            user.id
+              .toLowerCase()
+              .includes(phrase)
+          );
+        }
       );
-    });
-  }, [localUsers, search]);
+    }, [localUsers, search]);
 
   async function updateUser(
     userId: string,
     changes: Partial<AdminUser>
   ) {
-    setProcessingUserId(userId);
+    setProcessingUserId(
+      userId
+    );
 
-    const { error } = await supabase
-      .from("profiles")
-      .update(changes)
-      .eq("id", userId);
+    const { error } =
+      await supabase
+        .from("profiles")
+        .update(changes)
+        .eq("id", userId);
 
     setProcessingUserId(null);
 
@@ -167,15 +200,18 @@ export default function UsersTable({
       return false;
     }
 
-    setLocalUsers((previous) =>
-      previous.map((user) =>
-        user.id === userId
-          ? {
-              ...user,
-              ...changes,
-            }
-          : user
-      )
+    setLocalUsers(
+      (previous) =>
+        previous.map(
+          (user) =>
+            user.id ===
+            userId
+              ? {
+                  ...user,
+                  ...changes,
+                }
+              : user
+        )
     );
 
     return true;
@@ -187,15 +223,18 @@ export default function UsersTable({
     message: string,
     type: string
   ) {
-    const { error } = await supabase
-      .from("notifications")
-      .insert({
-        user_id: userId,
-        title,
-        message,
-        type,
-        is_read: false,
-      });
+    const { error } =
+      await supabase
+        .from(
+          "notifications"
+        )
+        .insert({
+          user_id: userId,
+          title,
+          message,
+          type,
+          is_read: false,
+        });
 
     if (error) {
       console.error(
@@ -208,36 +247,50 @@ export default function UsersTable({
   async function verifyUser(
     user: AdminUser
   ) {
-    const confirmed = window.confirm(
-      `Czy oznaczyć profil „${
-        user.name || "Użytkownik BLISKO24"
-      }” jako zweryfikowany?`
-    );
+    if (user.is_admin) {
+      return;
+    }
 
-    if (!confirmed) return;
+    const confirmed =
+      window.confirm(
+        `Czy oznaczyć profil „${
+          user.name ||
+          "Użytkownik BLISKO24"
+        }” jako zweryfikowany?`
+      );
 
-    const now = new Date().toISOString();
+    if (!confirmed) {
+      return;
+    }
 
-    const success = await updateUser(
-      user.id,
-      {
-        verified: true,
-        verified_at: now,
+    const now =
+      new Date().toISOString();
 
-        verification_status:
-          "verified",
+    const success =
+      await updateUser(
+        user.id,
+        {
+          verified: true,
+          verified_at: now,
 
-        verification_note: null,
+          verification_status:
+            "verified",
 
-        verification_reviewed_at:
-          now,
+          verification_note:
+            null,
 
-        verification_reviewed_by:
-          currentUserId || null,
-      }
-    );
+          verification_reviewed_at:
+            now,
 
-    if (!success) return;
+          verification_reviewed_by:
+            currentUserId ||
+            null,
+        }
+      );
+
+    if (!success) {
+      return;
+    }
 
     await sendNotification(
       user.id,
@@ -250,34 +303,47 @@ export default function UsersTable({
   async function revokeVerification(
     user: AdminUser
   ) {
-    const confirmed = window.confirm(
-      `Czy cofnąć weryfikację profilu „${
-        user.name || "Użytkownik BLISKO24"
-      }”?`
-    );
+    if (user.is_admin) {
+      return;
+    }
 
-    if (!confirmed) return;
+    const confirmed =
+      window.confirm(
+        `Czy cofnąć weryfikację profilu „${
+          user.name ||
+          "Użytkownik BLISKO24"
+        }”?`
+      );
 
-    const success = await updateUser(
-      user.id,
-      {
-        verified: false,
-        verified_at: null,
+    if (!confirmed) {
+      return;
+    }
 
-        verification_status:
-          "pending",
+    const success =
+      await updateUser(
+        user.id,
+        {
+          verified: false,
+          verified_at: null,
 
-        verification_note: null,
+          verification_status:
+            "pending",
 
-        verification_reviewed_at:
-          new Date().toISOString(),
+          verification_note:
+            null,
 
-        verification_reviewed_by:
-          currentUserId || null,
-      }
-    );
+          verification_reviewed_at:
+            new Date().toISOString(),
 
-    if (!success) return;
+          verification_reviewed_by:
+            currentUserId ||
+            null,
+        }
+      );
+
+    if (!success) {
+      return;
+    }
 
     await sendNotification(
       user.id,
@@ -290,17 +356,25 @@ export default function UsersTable({
   async function requestChanges(
     user: AdminUser
   ) {
-    const reason = window.prompt(
-      "Napisz użytkownikowi, co powinien poprawić w profilu:"
-    );
+    if (user.is_admin) {
+      return;
+    }
 
-    if (reason === null) return;
+    const reason =
+      window.prompt(
+        "Napisz użytkownikowi, co powinien poprawić w profilu:"
+      );
+
+    if (reason === null) {
+      return;
+    }
 
     const normalizedReason =
       reason.trim();
 
     if (
-      normalizedReason.length < 5
+      normalizedReason.length <
+      5
     ) {
       alert(
         "Wiadomość powinna mieć przynajmniej 5 znaków."
@@ -309,38 +383,46 @@ export default function UsersTable({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Czy wysłać prośbę o poprawę danych użytkownikowi „${
-        user.name || "Użytkownik BLISKO24"
-      }”?`
-    );
+    const confirmed =
+      window.confirm(
+        `Czy wysłać prośbę o poprawę danych użytkownikowi „${
+          user.name ||
+          "Użytkownik BLISKO24"
+        }”?`
+      );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     const now =
       new Date().toISOString();
 
-    const success = await updateUser(
-      user.id,
-      {
-        verified: false,
-        verified_at: null,
+    const success =
+      await updateUser(
+        user.id,
+        {
+          verified: false,
+          verified_at: null,
 
-        verification_status:
-          "changes_requested",
+          verification_status:
+            "changes_requested",
 
-        verification_note:
-          normalizedReason,
+          verification_note:
+            normalizedReason,
 
-        verification_reviewed_at:
-          now,
+          verification_reviewed_at:
+            now,
 
-        verification_reviewed_by:
-          currentUserId || null,
-      }
-    );
+          verification_reviewed_by:
+            currentUserId ||
+            null,
+        }
+      );
 
-    if (!success) return;
+    if (!success) {
+      return;
+    }
 
     await sendNotification(
       user.id,
@@ -357,34 +439,47 @@ export default function UsersTable({
   async function markAsPending(
     user: AdminUser
   ) {
-    const confirmed = window.confirm(
-      "Czy przywrócić status „Do sprawdzenia”?"
+    if (user.is_admin) {
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        "Czy przywrócić status „Do sprawdzenia”?"
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await updateUser(
+      user.id,
+      {
+        verified: false,
+        verified_at: null,
+
+        verification_status:
+          "pending",
+
+        verification_note:
+          null,
+
+        verification_reviewed_at:
+          new Date().toISOString(),
+
+        verification_reviewed_by:
+          currentUserId ||
+          null,
+      }
     );
-
-    if (!confirmed) return;
-
-    await updateUser(user.id, {
-      verified: false,
-      verified_at: null,
-
-      verification_status:
-        "pending",
-
-      verification_note: null,
-
-      verification_reviewed_at:
-        new Date().toISOString(),
-
-      verification_reviewed_by:
-        currentUserId || null,
-    });
   }
 
   async function toggleBlocked(
     user: AdminUser
   ) {
     if (
-      user.id === currentUserId
+      user.id ===
+      currentUserId
     ) {
       alert(
         "Nie możesz zablokować własnego konta administratora."
@@ -394,34 +489,46 @@ export default function UsersTable({
     }
 
     if (user.blocked) {
-      const confirmed = window.confirm(
-        `Odblokować użytkownika ${
-          user.name || "BLISKO24"
-        }?`
+      const confirmed =
+        window.confirm(
+          `Odblokować użytkownika ${
+            user.name ||
+            "BLISKO24"
+          }?`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      await updateUser(
+        user.id,
+        {
+          blocked: false,
+          blocked_at: null,
+          blocked_reason:
+            null,
+        }
       );
-
-      if (!confirmed) return;
-
-      await updateUser(user.id, {
-        blocked: false,
-        blocked_at: null,
-        blocked_reason: null,
-      });
 
       return;
     }
 
-    const reason = window.prompt(
-      "Podaj powód zablokowania konta:"
-    );
+    const reason =
+      window.prompt(
+        "Podaj powód zablokowania konta:"
+      );
 
-    if (reason === null) return;
+    if (reason === null) {
+      return;
+    }
 
     const trimmedReason =
       reason.trim();
 
     if (
-      trimmedReason.length < 3
+      trimmedReason.length <
+      3
     ) {
       alert(
         "Powód blokady powinien mieć przynajmniej 3 znaki."
@@ -430,26 +537,33 @@ export default function UsersTable({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Czy na pewno zablokować użytkownika ${
-        user.name || "BLISKO24"
-      }?`
-    );
+    const confirmed =
+      window.confirm(
+        `Czy na pewno zablokować użytkownika ${
+          user.name ||
+          "BLISKO24"
+        }?`
+      );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
-    const success = await updateUser(
-      user.id,
-      {
-        blocked: true,
-        blocked_at:
-          new Date().toISOString(),
-        blocked_reason:
-          trimmedReason,
-      }
-    );
+    const success =
+      await updateUser(
+        user.id,
+        {
+          blocked: true,
+          blocked_at:
+            new Date().toISOString(),
+          blocked_reason:
+            trimmedReason,
+        }
+      );
 
-    if (!success) return;
+    if (!success) {
+      return;
+    }
 
     await sendNotification(
       user.id,
@@ -463,7 +577,8 @@ export default function UsersTable({
     user: AdminUser
   ) {
     if (
-      user.id === currentUserId
+      user.id ===
+      currentUserId
     ) {
       alert(
         "Nie możesz zmienić własnych uprawnień administratora."
@@ -481,11 +596,16 @@ export default function UsersTable({
           }”?`
         );
 
-      if (!confirmed) return;
+      if (!confirmed) {
+        return;
+      }
 
-      await updateUser(user.id, {
-        is_admin: false,
-      });
+      await updateUser(
+        user.id,
+        {
+          is_admin: false,
+        }
+      );
 
       return;
     }
@@ -498,11 +618,13 @@ export default function UsersTable({
         }”?`
       );
 
-    if (!firstConfirmation) return;
+    if (!firstConfirmation) {
+      return;
+    }
 
     const confirmationText =
       window.prompt(
-        'Aby potwierdzić, wpisz dokładnie: NADAJ ADMINA'
+        "Aby potwierdzić, wpisz dokładnie: NADAJ ADMINA"
       );
 
     if (
@@ -516,9 +638,12 @@ export default function UsersTable({
       return;
     }
 
-    await updateUser(user.id, {
-      is_admin: true,
-    });
+    await updateUser(
+      user.id,
+      {
+        is_admin: true,
+      }
+    );
   }
 
   return (
@@ -536,16 +661,21 @@ export default function UsersTable({
 
             <p className="mt-2 text-sm text-slate-500">
               Liczba kont:{" "}
-              {localUsers.length}
+              {
+                localUsers.length
+              }
             </p>
           </div>
 
           <input
             type="search"
             value={search}
-            onChange={(event) =>
+            onChange={(
+              event
+            ) =>
               setSearch(
-                event.target.value
+                event.target
+                  .value
               )
             }
             placeholder="Szukaj po nazwie, mieście lub typie konta..."
@@ -554,7 +684,8 @@ export default function UsersTable({
         </div>
       </div>
 
-      {filteredUsers.length === 0 ? (
+      {filteredUsers.length ===
+      0 ? (
         <div className="p-8 text-center text-gray-500">
           Nie znaleziono użytkowników.
         </div>
@@ -601,7 +732,8 @@ export default function UsersTable({
               {filteredUsers.map(
                 (user) => {
                   const userName =
-                    user.name?.trim() ||
+                    user.name
+                      ?.trim() ||
                     "Użytkownik BLISKO24";
 
                   const processing =
@@ -616,7 +748,9 @@ export default function UsersTable({
 
                   return (
                     <tr
-                      key={user.id}
+                      key={
+                        user.id
+                      }
                       className="border-t border-slate-100 align-top"
                     >
                       <td className="px-6 py-5">
@@ -634,33 +768,46 @@ export default function UsersTable({
                           ) : (
                             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
                               {userName
-                                .charAt(0)
+                                .charAt(
+                                  0
+                                )
                                 .toUpperCase()}
                             </div>
                           )}
 
                           <div className="min-w-0">
                             <p className="font-bold text-slate-900">
-                              {userName}
+                              {
+                                userName
+                              }
                             </p>
 
                             <p className="mt-1 max-w-52 truncate text-xs text-slate-400">
-                              {user.id}
+                              {
+                                user.id
+                              }
                             </p>
                           </div>
                         </div>
                       </td>
 
                       <td className="px-6 py-5">
-                        <span className="rounded-full bg-cyan-50 px-3 py-1 text-sm font-semibold text-cyan-800">
-                          {getAccountTypeLabel(
-                            user.account_type
-                          )}
-                        </span>
+                        {user.is_admin ? (
+                          <span className="rounded-full bg-purple-100 px-3 py-1 text-sm font-bold text-purple-800">
+                            👑 Administrator
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-cyan-50 px-3 py-1 text-sm font-semibold text-cyan-800">
+                            {getAccountTypeLabel(
+                              user.account_type
+                            )}
+                          </span>
+                        )}
                       </td>
 
                       <td className="px-6 py-5 text-slate-600">
-                        {user.city || "—"}
+                        {user.city ||
+                          "—"}
                       </td>
 
                       <td className="px-6 py-5 text-sm text-slate-600">
@@ -677,38 +824,46 @@ export default function UsersTable({
 
                       <td className="px-6 py-5">
                         <div className="flex max-w-64 flex-col items-start gap-2">
-                          {verificationStatus ===
-                            "verified" && (
-                            <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-bold text-green-700">
-                              ✔ Zweryfikowany
+                          {user.is_admin ? (
+                            <span className="rounded-full bg-purple-100 px-3 py-1 text-sm font-bold text-purple-800">
+                              ✅ Konto administratora
                             </span>
-                          )}
+                          ) : (
+                            <>
+                              {verificationStatus ===
+                                "verified" && (
+                                <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-bold text-green-700">
+                                  ✔ Zweryfikowany
+                                </span>
+                              )}
 
-                          {verificationStatus ===
-                            "pending" && (
-                            <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-bold text-yellow-800">
-                              ⏳ Do sprawdzenia
-                            </span>
-                          )}
+                              {verificationStatus ===
+                                "pending" && (
+                                <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-bold text-yellow-800">
+                                  ⏳ Do sprawdzenia
+                                </span>
+                              )}
 
-                          {verificationStatus ===
-                            "changes_requested" && (
-                            <span className="rounded-full bg-orange-100 px-3 py-1 text-sm font-bold text-orange-800">
-                              ⚠ Wymaga poprawy
-                            </span>
-                          )}
+                              {verificationStatus ===
+                                "changes_requested" && (
+                                <span className="rounded-full bg-orange-100 px-3 py-1 text-sm font-bold text-orange-800">
+                                  ⚠ Wymaga poprawy
+                                </span>
+                              )}
 
-                          {user.verification_note && (
-                            <p
-                              className="text-xs leading-5 text-orange-700"
-                              title={
-                                user.verification_note
-                              }
-                            >
-                              {
-                                user.verification_note
-                              }
-                            </p>
+                              {user.verification_note && (
+                                <p
+                                  className="text-xs leading-5 text-orange-700"
+                                  title={
+                                    user.verification_note
+                                  }
+                                >
+                                  {
+                                    user.verification_note
+                                  }
+                                </p>
+                              )}
+                            </>
                           )}
 
                           {user.blocked ? (
@@ -750,76 +905,80 @@ export default function UsersTable({
                             Profil
                           </Link>
 
-                          {verificationStatus !==
-                            "verified" && (
-                            <button
-                              type="button"
-                              disabled={
-                                processing
-                              }
-                              onClick={() =>
-                                verifyUser(
-                                  user
-                                )
-                              }
-                              className="rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-                            >
-                              Zweryfikuj
-                            </button>
-                          )}
+                          {!user.is_admin && (
+                            <>
+                              {verificationStatus !==
+                                "verified" && (
+                                <button
+                                  type="button"
+                                  disabled={
+                                    processing
+                                  }
+                                  onClick={() =>
+                                    verifyUser(
+                                      user
+                                    )
+                                  }
+                                  className="rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                                >
+                                  Zweryfikuj
+                                </button>
+                              )}
 
-                          {verificationStatus ===
-                            "verified" && (
-                            <button
-                              type="button"
-                              disabled={
-                                processing
-                              }
-                              onClick={() =>
-                                revokeVerification(
-                                  user
-                                )
-                              }
-                              className="rounded-lg bg-slate-600 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
-                            >
-                              Cofnij weryfikację
-                            </button>
-                          )}
+                              {verificationStatus ===
+                                "verified" && (
+                                <button
+                                  type="button"
+                                  disabled={
+                                    processing
+                                  }
+                                  onClick={() =>
+                                    revokeVerification(
+                                      user
+                                    )
+                                  }
+                                  className="rounded-lg bg-slate-600 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+                                >
+                                  Cofnij weryfikację
+                                </button>
+                              )}
 
-                          {verificationStatus !==
-                            "changes_requested" && (
-                            <button
-                              type="button"
-                              disabled={
-                                processing
-                              }
-                              onClick={() =>
-                                requestChanges(
-                                  user
-                                )
-                              }
-                              className="rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
-                            >
-                              Poproś o poprawę
-                            </button>
-                          )}
+                              {verificationStatus !==
+                                "changes_requested" && (
+                                <button
+                                  type="button"
+                                  disabled={
+                                    processing
+                                  }
+                                  onClick={() =>
+                                    requestChanges(
+                                      user
+                                    )
+                                  }
+                                  className="rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+                                >
+                                  Poproś o poprawę
+                                </button>
+                              )}
 
-                          {verificationStatus ===
-                            "changes_requested" && (
-                            <button
-                              type="button"
-                              disabled={
-                                processing
-                              }
-                              onClick={() =>
-                                markAsPending(
-                                  user
-                                )
-                              }
-                              className="rounded-lg bg-yellow-500 px-3 py-2 text-sm font-semibold text-white hover:bg-yellow-600 disabled:opacity-50"
-                            >
-                              Do sprawdzenia
-                            </button>
+                              {verificationStatus ===
+                                "changes_requested" && (
+                                <button
+                                  type="button"
+                                  disabled={
+                                    processing
+                                  }
+                                  onClick={() =>
+                                    markAsPending(
+                                      user
+                                    )
+                                  }
+                                  className="rounded-lg bg-yellow-500 px-3 py-2 text-sm font-semibold text-white hover:bg-yellow-600 disabled:opacity-50"
+                                >
+                                  Do sprawdzenia
+                                </button>
+                              )}
+                            </>
                           )}
 
                           <button

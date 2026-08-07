@@ -129,6 +129,18 @@ export default function AdminPage() {
       if (cancelled) return;
 
       if (userError) {
+        const isMissingSession =
+          userError.name ===
+            "AuthSessionMissingError" ||
+          userError.message
+            ?.toLowerCase()
+            .includes("auth session missing");
+
+        if (isMissingSession) {
+          router.replace("/logowanie");
+          return;
+        }
+
         console.error(
           "Błąd pobierania użytkownika:",
           userError
@@ -186,7 +198,7 @@ export default function AdminPage() {
       await loadAdminData(cancelled);
     }
 
-    initialize();
+    void initialize();
 
     return () => {
       cancelled = true;
@@ -737,9 +749,9 @@ export default function AdminPage() {
         </section>
 
         <section
-  id="moderacja"
-  className="mt-12 overflow-hidden rounded-3xl bg-white shadow scroll-mt-28"
->
+          id="moderacja"
+          className="mt-12 scroll-mt-28 overflow-hidden rounded-3xl bg-white shadow"
+        >
           <div className="border-b border-slate-200 bg-orange-50 p-6 sm:p-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
