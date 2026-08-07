@@ -113,7 +113,8 @@ export default function LoginPage() {
       await supabase.auth.signOut();
       setLoggingIn(false);
 
-      const reason = profile.blocked_reason?.trim();
+      const reason =
+        profile.blocked_reason?.trim();
 
       alert(
         reason
@@ -126,7 +127,7 @@ export default function LoginPage() {
 
     setLoggingIn(false);
 
-    router.replace("/konto");
+    router.replace("/");
     router.refresh();
   }
 
@@ -178,7 +179,11 @@ export default function LoginPage() {
     setRegistering(false);
 
     if (error) {
-      console.error("Błąd rejestracji:", error);
+      console.error(
+        "Błąd rejestracji:",
+        error
+      );
+
       alert(error.message);
       return;
     }
@@ -228,7 +233,11 @@ export default function LoginPage() {
     setSendingReset(false);
 
     if (error) {
-      console.error("Błąd resetowania hasła:", error);
+      console.error(
+        "Błąd resetowania hasła:",
+        error
+      );
+
       alert(error.message);
       return;
     }
@@ -246,11 +255,11 @@ export default function LoginPage() {
     event.preventDefault();
 
     if (mode === "login") {
-      handleLogin();
+      void handleLogin();
       return;
     }
 
-    handleRegister();
+    void handleRegister();
   }
 
   return (
@@ -269,7 +278,7 @@ export default function LoginPage() {
 
           <p className="mt-2 text-sm text-slate-500">
             {mode === "login"
-              ? "Zaloguj się i przejdź do swojego panelu."
+              ? "Zaloguj się i korzystaj ze wszystkich możliwości BLISKO24."
               : "Wybierz sposób korzystania z portalu i rozpocznij bezpłatnie."}
           </p>
         </div>
@@ -356,7 +365,7 @@ export default function LoginPage() {
           <>
             <button
               type="button"
-              onClick={handleLogin}
+              onClick={() => void handleLogin()}
               disabled={formBusy}
               className="mt-7 w-full rounded-xl bg-blue-700 py-3.5 font-bold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -367,7 +376,9 @@ export default function LoginPage() {
 
             <button
               type="button"
-              onClick={handlePasswordReset}
+              onClick={() =>
+                void handlePasswordReset()
+              }
               disabled={formBusy}
               className="mt-5 w-full text-sm font-semibold text-blue-700 hover:underline disabled:opacity-50"
             >
@@ -383,7 +394,9 @@ export default function LoginPage() {
 
               <button
                 type="button"
-                onClick={() => changeMode("register")}
+                onClick={() =>
+                  changeMode("register")
+                }
                 className="mt-2 font-bold text-green-700 hover:underline"
               >
                 Załóż bezpłatne konto →
@@ -404,23 +417,27 @@ export default function LoginPage() {
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 {[
                   {
-                    value: "candidate" as AccountType,
+                    value:
+                      "candidate" as AccountType,
                     icon: "👤",
                     title: "Szukam pracy",
                   },
                   {
-                    value: "employer" as AccountType,
+                    value:
+                      "employer" as AccountType,
                     icon: "🏢",
                     title: "Szukam pracownika",
                   },
                   {
-                    value: "both" as AccountType,
+                    value:
+                      "both" as AccountType,
                     icon: "🤝",
                     title: "Obie opcje",
                   },
                 ].map((option) => {
                   const selected =
-                    accountType === option.value;
+                    accountType ===
+                    option.value;
 
                   return (
                     <label
@@ -438,7 +455,9 @@ export default function LoginPage() {
                         checked={selected}
                         disabled={formBusy}
                         onChange={() =>
-                          setAccountType(option.value)
+                          setAccountType(
+                            option.value
+                          )
                         }
                         className="sr-only"
                       />
@@ -463,7 +482,9 @@ export default function LoginPage() {
                   checked={acceptTerms}
                   disabled={formBusy}
                   onChange={(event) =>
-                    setAcceptTerms(event.target.checked)
+                    setAcceptTerms(
+                      event.target.checked
+                    )
                   }
                   className="mt-1 h-5 w-5 shrink-0 accent-blue-700"
                 />
@@ -487,7 +508,9 @@ export default function LoginPage() {
                   checked={confirmPrivacy}
                   disabled={formBusy}
                   onChange={(event) =>
-                    setConfirmPrivacy(event.target.checked)
+                    setConfirmPrivacy(
+                      event.target.checked
+                    )
                   }
                   className="mt-1 h-5 w-5 shrink-0 accent-blue-700"
                 />
@@ -512,7 +535,9 @@ export default function LoginPage() {
 
             <button
               type="button"
-              onClick={handleRegister}
+              onClick={() =>
+                void handleRegister()
+              }
               disabled={formBusy}
               className="mt-5 w-full rounded-xl bg-green-600 py-3.5 font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
