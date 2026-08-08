@@ -14,16 +14,59 @@ type AccountType = "candidate" | "employer" | "both";
 
 export default function Header() {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [accountType, setAccountType] = useState<AccountType | null>(null);
+
+  const [accountType, setAccountType] =
+    useState<AccountType | null>(null);
+
+  const [adminAlertsCount, setAdminAlertsCount] =
+    useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadProfileStatus(userId?: string) {
+    async function loadAdminAlerts() {
+      const [
+        pendingProfilesResult,
+        pendingAdvertisementsResult,
+      ] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("*", {
+            count: "exact",
+            head: true,
+          })
+          .eq("verification_status", "pending"),
+
+        supabase
+          .from("advertisements")
+          .select("*", {
+            count: "exact",
+            head: true,
+          })
+          .eq("status", "pending"),
+      ]);
+
+      if (cancelled) return;
+
+      const profilesCount =
+        pendingProfilesResult.count ?? 0;
+
+      const advertisementsCount =
+        pendingAdvertisementsResult.count ?? 0;
+
+      setAdminAlertsCount(
+        profilesCount + advertisementsCount
+      );
+    }
+
+    async function loadProfileStatus(
+      userId?: string
+    ) {
       if (!userId) {
         if (!cancelled) {
           setIsAdmin(false);
           setAccountType(null);
+          setAdminAlertsCount(0);
         }
 
         return;
@@ -38,14 +81,33 @@ export default function Header() {
       if (cancelled) return;
 
       if (error) {
-        console.error("Błąd pobierania typu konta:", error);
+        console.error(
+          "Błąd pobierania typu konta:",
+          error
+        );
+
         setIsAdmin(false);
         setAccountType(null);
+        setAdminAlertsCount(0);
+
         return;
       }
 
-      setIsAdmin(data?.is_admin === true);
-      setAccountType((data?.account_type as AccountType | null) ?? "both");
+      const admin =
+        data?.is_admin === true;
+
+      setIsAdmin(admin);
+
+      setAccountType(
+        (data?.account_type as AccountType | null) ??
+          "both"
+      );
+
+      if (admin) {
+        await loadAdminAlerts();
+      } else {
+        setAdminAlertsCount(0);
+      }
     }
 
     async function initialize() {
@@ -60,9 +122,13 @@ export default function Header() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      void loadProfileStatus(session?.user?.id);
-    });
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        void loadProfileStatus(
+          session?.user?.id
+        );
+      }
+    );
 
     return () => {
       cancelled = true;
@@ -71,10 +137,12 @@ export default function Header() {
   }, []);
 
   const canUseEmployerFeatures =
-    accountType === "employer" || accountType === "both";
+    accountType === "employer" ||
+    accountType === "both";
 
   const canUseCandidateFeatures =
-    accountType === "candidate" || accountType === "both";
+    accountType === "candidate" ||
+    accountType === "both";
 
   return (
     <>
@@ -82,7 +150,10 @@ export default function Header() {
 
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <Link href="/" className="flex min-w-0 items-center gap-3">
+          <Link
+            href="/"
+            className="flex min-w-0 items-center gap-3"
+          >
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-700 text-xl font-bold text-white shadow-lg sm:h-12 sm:w-12 sm:text-2xl">
               B
             </div>
@@ -131,14 +202,15 @@ export default function Header() {
               </>
             )}
 
-            {canUseCandidateFeatures && accountType === "candidate" && (
-              <Link
-                href="/ustawienia/profil"
-                className="font-semibold text-green-700 transition hover:text-green-800"
-              >
-                👤 Profil kandydata
-              </Link>
-            )}
+            {canUseCandidateFeatures &&
+              accountType === "candidate" && (
+                <Link
+                  href="/ustawienia/profil"
+                  className="font-semibold text-green-700 transition hover:text-green-800"
+                >
+                  👤 Profil kandydata
+                </Link>
+              )}
 
             <Link
               href="/konto"
@@ -153,9 +225,17 @@ export default function Header() {
             {isAdmin && (
               <Link
                 href="/admin"
-                className="font-semibold text-red-600 transition hover:text-red-700"
+                className="relative inline-flex items-center gap-2 font-semibold text-red-600 transition hover:text-red-700"
               >
-                👑 Admin
+                <span>👑 Admin</span>
+
+                {adminAlertsCount > 0 && (
+                  <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-red-600 px-2 py-0.5 text-xs font-extrabold text-white shadow">
+                    {adminAlertsCount > 99
+                      ? "99+"
+                      : adminAlertsCount}
+                  </span>
+                )}
               </Link>
             )}
 
@@ -208,14 +288,16 @@ export default function Header() {
                   </>
                 )}
 
-                {canUseCandidateFeatures && accountType === "candidate" && (
-                  <Link
-                    href="/ustawienia/profil"
-                    className="rounded-xl bg-green-50 px-4 py-3 font-semibold text-green-700 hover:bg-green-100"
-                  >
-                    👤 Mój profil kandydata
-                  </Link>
-                )}
+                {canUseCandidateFeatures &&
+                  accountType ===
+                    "candidate" && (
+                    <Link
+                      href="/ustawienia/profil"
+                      className="rounded-xl bg-green-50 px-4 py-3 font-semibold text-green-700 hover:bg-green-100"
+                    >
+                      👤 Mój profil kandydata
+                    </Link>
+                  )}
 
                 <Link
                   href="/konto"
@@ -228,7 +310,9 @@ export default function Header() {
                   href="/wiadomosci"
                   className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700"
                 >
-                  <span className="text-xl">💬</span>
+                  <span className="text-xl">
+                    💬
+                  </span>
                   Wiadomości
                 </Link>
 
@@ -236,16 +320,29 @@ export default function Header() {
                   href="/powiadomienia"
                   className="flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-700"
                 >
-                  <span className="text-xl">🔔</span>
+                  <span className="text-xl">
+                    🔔
+                  </span>
                   Powiadomienia
                 </Link>
 
                 {isAdmin && (
                   <Link
                     href="/admin"
-                    className="rounded-xl px-4 py-3 font-semibold text-red-600 hover:bg-red-50"
+                    className="flex items-center justify-between rounded-xl px-4 py-3 font-semibold text-red-600 hover:bg-red-50"
                   >
-                    👑 Panel administratora
+                    <span>
+                      👑 Panel administratora
+                    </span>
+
+                    {adminAlertsCount > 0 && (
+                      <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-red-600 px-2 py-1 text-xs font-extrabold text-white">
+                        {adminAlertsCount >
+                        99
+                          ? "99+"
+                          : adminAlertsCount}
+                      </span>
+                    )}
                   </Link>
                 )}
 
