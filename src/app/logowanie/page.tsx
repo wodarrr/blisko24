@@ -16,6 +16,9 @@ const PRIVACY_VERSION = "2026-08-02";
 
 type FormMode = "login" | "register";
 
+const inputClassName =
+  "w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100 disabled:text-slate-500";
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -330,7 +333,10 @@ export default function LoginPage() {
               setEmail(event.target.value)
             }
             onKeyDown={handleKeyDown}
-            className="w-full rounded-xl border border-slate-300 p-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+            className={inputClassName}
+            style={{
+              WebkitTextFillColor: "#0f172a",
+            }}
           />
         </div>
 
@@ -357,7 +363,10 @@ export default function LoginPage() {
               setPassword(event.target.value)
             }
             onKeyDown={handleKeyDown}
-            className="w-full rounded-xl border border-slate-300 p-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
+            className={inputClassName}
+            style={{
+              WebkitTextFillColor: "#0f172a",
+            }}
           />
         </div>
 
