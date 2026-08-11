@@ -2,6 +2,7 @@ import Header from "../components/Header";
 import Hero from "../components/Hero";
 import FreeJobSeekerBanner from "../components/FreeJobSeekerBanner";
 import RecentCandidates from "../components/RecentCandidates";
+import RecentEmployers from "../components/RecentEmployers";
 import HomeStats from "../components/HomeStats";
 import FeaturedAdvertisements from "../components/FeaturedAdvertisements";
 import Categories from "../components/Categories";
@@ -54,6 +55,8 @@ export default async function Home({
 
       <RecentCandidates />
 
+      <RecentEmployers />
+
       <HomeStats />
 
       <FeaturedAdvertisements />
@@ -70,15 +73,9 @@ export default async function Home({
         sort={sort}
         minPrice={minPrice}
         maxPrice={maxPrice}
-        promotedOnly={
-          promoted === "true"
-        }
-        urgentOnly={
-          urgent === "true"
-        }
-        featuredOnly={
-          featured === "true"
-        }
+        promotedOnly={promoted === "true"}
+        urgentOnly={urgent === "true"}
+        featuredOnly={featured === "true"}
       />
 
       <ProvinceStatistics />

@@ -141,7 +141,7 @@ export default function RecentCandidates() {
           .order("created_at", {
             ascending: false,
           })
-          .limit(12);
+          .limit(10);
 
       if (cancelled) return;
 
@@ -158,15 +158,13 @@ export default function RecentCandidates() {
       }
 
       const validCandidates =
-        (
-          (data ?? []) as Candidate[]
-        )
+        ((data ?? []) as Candidate[])
           .filter(
             (candidate) =>
               candidate.candidate_role?.trim() &&
               candidate.is_admin !== true
           )
-          .slice(0, 6);
+          .slice(0, 3);
 
       setCandidates(validCandidates);
       setLoading(false);
@@ -196,7 +194,7 @@ export default function RecentCandidates() {
   }
 
   return (
-    <section className="bg-white py-12 sm:py-16">
+    <section className="bg-white pb-8 pt-12 sm:pb-10 sm:pt-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -283,17 +281,13 @@ export default function RecentCandidates() {
                 <div className="mt-5 space-y-3 text-sm text-slate-600">
                   <p className="flex items-start gap-2">
                     <span>📍</span>
-                    <span>
-                      {location}
-                    </span>
+                    <span>{location}</span>
                   </p>
 
                   {experience && (
                     <p className="flex items-start gap-2">
                       <span>💼</span>
-                      <span>
-                        {experience}
-                      </span>
+                      <span>{experience}</span>
                     </p>
                   )}
 
@@ -314,27 +308,6 @@ export default function RecentCandidates() {
               </article>
             );
           })}
-        </div>
-
-        <div className="mt-8 rounded-2xl bg-slate-50 p-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
-          <div>
-            <p className="font-extrabold text-slate-900">
-              Szukasz pracownika?
-            </p>
-
-            <p className="mt-1 text-sm text-slate-600">
-              Przejdź do wyszukiwarki
-              i sprawdź kandydatów według
-              stanowiska oraz lokalizacji.
-            </p>
-          </div>
-
-          <Link
-            href="/znajdz-kandydata"
-            className="mt-4 inline-flex rounded-xl bg-slate-900 px-5 py-3 font-bold text-white transition hover:bg-slate-800 sm:mt-0"
-          >
-            Przeglądaj kandydatów
-          </Link>
         </div>
       </div>
     </section>

@@ -79,7 +79,7 @@ export default function RecentEmployers() {
           .order("created_at", {
             ascending: false,
           })
-          .limit(12);
+          .limit(10);
 
       if (cancelled) return;
 
@@ -106,7 +106,7 @@ export default function RecentEmployers() {
               employer.is_admin !== true
             );
           })
-          .slice(0, 6);
+          .slice(0, 3);
 
       setEmployers(validEmployers);
       setLoading(false);
@@ -120,15 +120,7 @@ export default function RecentEmployers() {
   }, []);
 
   if (loading) {
-    return (
-      <section className="bg-slate-50 py-12 sm:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500">
-            Ładowanie ostatnich pracodawców...
-          </div>
-        </div>
-      </section>
-    );
+    return null;
   }
 
   if (employers.length === 0) {
@@ -136,9 +128,9 @@ export default function RecentEmployers() {
   }
 
   return (
-    <section className="bg-slate-50 py-12 sm:py-16">
+    <section className="bg-white pb-12 pt-2 sm:pb-16 sm:pt-4">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mb-7 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">
               <span>●</span>
@@ -150,9 +142,9 @@ export default function RecentEmployers() {
             </h2>
 
             <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-              Firmy i pracodawcy również
-              dołączają do BLISKO24.
-              Sprawdź najnowsze profile.
+              Zobacz firmy i pracodawców,
+              którzy ostatnio dołączyli
+              do społeczności BLISKO24.
             </p>
           </div>
 
@@ -231,15 +223,15 @@ export default function RecentEmployers() {
           })}
         </div>
 
-        <div className="mt-8 rounded-2xl bg-white p-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
+        <div className="mt-7 rounded-2xl bg-slate-50 p-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
           <div>
             <p className="font-extrabold text-slate-900">
               Jesteś pracodawcą?
             </p>
 
             <p className="mt-1 text-sm text-slate-600">
-              Utwórz profil i korzystaj z
-              wyszukiwarki kandydatów BLISKO24.
+              Utwórz profil i korzystaj
+              z wyszukiwarki kandydatów BLISKO24.
             </p>
           </div>
 
