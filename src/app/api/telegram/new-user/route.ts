@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+type NotificationType =
+  | "new_registration"
+  | "profile_completed";
+
 type NewUserPayload = {
   id?: string;
   name?: string | null;
   city?: string | null;
   account_type?: "candidate" | "employer" | "both" | null;
   created_at?: string | null;
+  notification_type?: NotificationType | null;
 };
 
 function getAccountTypeLabel(
@@ -29,9 +34,14 @@ function getAccountTypeLabel(
 }
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const secret =
+    process.env.TELEGRAM_WEBHOOK_SECRET;
+
+  const botToken =
+    process.env.TELEGRAM_BOT_TOKEN;
+
+  const chatId =
+    process.env.TELEGRAM_CHAT_ID;
 
   if (!secret || !botToken || !chatId) {
     console.error(
@@ -41,8 +51,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error:
-          "Brak konfiguracji Telegram.",
+        error: "Brak konfiguracji Telegram.",
       },
       {
         status: 500,
@@ -51,7 +60,9 @@ export async function POST(request: NextRequest) {
   }
 
   const requestSecret =
-    request.headers.get("x-telegram-secret");
+    request.headers.get(
+      "x-telegram-secret"
+    );
 
   if (requestSecret !== secret) {
     return NextResponse.json(
@@ -74,14 +85,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error:
-          "Nieprawidłowe dane żądania.",
+        error: "Nieprawidłowe dane żądania.",
       },
       {
         status: 400,
       }
     );
   }
+
+  const notificationType =
+    payload.notification_type ??
+    "new_registration";
 
   const name =
     payload.name?.trim() ||
@@ -109,14 +123,30 @@ export async function POST(request: NextRequest) {
         }
       );
 
-  const message = [
-    "👤 Nowa rejestracja BLISKO24",
-    "",
-    `Typ konta: ${accountType}`,
-    `Nazwa: ${name}`,
-    `Miasto: ${city}`,
-    `Data: ${createdAt}`,
-  ].join("\n");
+  let message: string;
+
+  if (
+    notificationType ===
+    "profile_completed"
+  ) {
+    message = [
+      "✅ Użytkownik uzupełnił profil BLISKO24",
+      "",
+      `Imię / nazwa: ${name}`,
+      `Miasto: ${city}`,
+      `Typ konta: ${accountType}`,
+      `Rejestracja: ${createdAt}`,
+    ].join("\n");
+  } else {
+    message = [
+      "👤 Nowa rejestracja BLISKO24",
+      "",
+      `Typ konta: ${accountType}`,
+      `Nazwa: ${name}`,
+      `Miasto: ${city}`,
+      `Data: ${createdAt}`,
+    ].join("\n");
+  }
 
   const telegramResponse =
     await fetch(
