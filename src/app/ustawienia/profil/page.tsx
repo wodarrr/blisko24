@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
+import Header from "../../../components/Header";
 import ImageUpload from "../../../components/ImageUpload";
 import { supabase } from "../../../lib/supabase";
 
@@ -566,16 +568,28 @@ export default function EditProfilePage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-100">
-        <p>Ładowanie profilu...</p>
-      </main>
+      <>
+        <Header />
+        <main className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-gray-100 text-slate-900">
+          <p>Ładowanie profilu...</p>
+        </main>
+      </>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gray-100">
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-        <div className="mb-8">
+    <>
+      <Header />
+
+      <main className="min-h-screen bg-gray-100 text-slate-900">
+        <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
+          <div className="mb-8">
+            <Link
+              href="/"
+              className="mb-5 inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-800 shadow-sm transition hover:bg-slate-50"
+            >
+              ← Strona główna
+            </Link>
           <p className="text-sm font-bold uppercase tracking-wide text-blue-700">
             Ustawienia
           </p>
@@ -708,7 +722,7 @@ export default function EditProfilePage() {
                     updateTextField("name", event.target.value)
                   }
                   placeholder="Np. Krzysztof"
-                  className="w-full rounded-xl border p-4"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
               </div>
 
@@ -721,7 +735,7 @@ export default function EditProfilePage() {
                     updateTextField("city", event.target.value)
                   }
                   placeholder="Np. Piekary Śląskie"
-                  className="w-full rounded-xl border p-4"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
               </div>
             </div>
@@ -735,7 +749,7 @@ export default function EditProfilePage() {
                   updateTextField("phone", event.target.value)
                 }
                 placeholder="Np. 600 123 456"
-                className="w-full rounded-xl border p-4"
+                className="w-full rounded-xl border border-slate-300 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
 
               <p className="mt-2 text-sm text-slate-500">
@@ -754,7 +768,7 @@ export default function EditProfilePage() {
                 }
                 placeholder="Napisz kilka zdań o sobie..."
                 rows={5}
-                className="w-full rounded-xl border p-4"
+                className="w-full rounded-xl border border-slate-300 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
             </div>
           </section>
@@ -791,7 +805,7 @@ export default function EditProfilePage() {
                     updateTextField("candidate_role", event.target.value)
                   }
                   placeholder="Np. Kierowca kat. C, sprzedawca, hydraulik"
-                  className="w-full rounded-xl border border-green-200 bg-white p-4"
+                  className="w-full rounded-xl border border-green-200 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
                 />
               </div>
 
@@ -810,7 +824,7 @@ export default function EditProfilePage() {
                       updateTextField("years_of_experience", event.target.value)
                     }
                     placeholder="Np. 5"
-                    className="w-full rounded-xl border border-green-200 bg-white p-4"
+                    className="w-full rounded-xl border border-green-200 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
                   />
                 </div>
 
@@ -825,7 +839,7 @@ export default function EditProfilePage() {
                     onChange={(event) =>
                       updateTextField("available_from", event.target.value)
                     }
-                    className="w-full rounded-xl border border-green-200 bg-white p-4"
+                    className="w-full rounded-xl border border-green-200 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
                   />
                 </div>
               </div>
@@ -841,7 +855,7 @@ export default function EditProfilePage() {
                     onChange={(event) =>
                       updateTextField("preferred_province", event.target.value)
                     }
-                    className="w-full rounded-xl border border-green-200 bg-white p-4"
+                    className="w-full rounded-xl border border-green-200 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
                   >
                     <option value="">Cała Polska</option>
 
@@ -864,7 +878,7 @@ export default function EditProfilePage() {
                       updateTextField("preferred_city", event.target.value)
                     }
                     placeholder="Np. Katowice"
-                    className="w-full rounded-xl border border-green-200 bg-white p-4"
+                    className="w-full rounded-xl border border-green-200 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
                   />
                 </div>
               </div>
@@ -969,7 +983,7 @@ export default function EditProfilePage() {
                           }
                         }}
                         placeholder="Np. operator żurawia, montaż klimatyzacji"
-                        className="flex-1 rounded-xl border border-blue-200 bg-white p-4"
+                        className="flex-1 rounded-xl border border-blue-200 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                       />
 
                       <button
@@ -1089,7 +1103,7 @@ export default function EditProfilePage() {
                     updateTextField("company_name", event.target.value)
                   }
                   placeholder="Np. Elektro-Serwis"
-                  className="w-full rounded-xl border p-4"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
               </div>
 
@@ -1103,7 +1117,7 @@ export default function EditProfilePage() {
                   }
                   placeholder="Opisz działalność firmy..."
                   rows={5}
-                  className="w-full rounded-xl border p-4"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
               </div>
 
@@ -1119,7 +1133,7 @@ export default function EditProfilePage() {
                       updateTextField("website", event.target.value)
                     }
                     placeholder="https://twojastrona.pl"
-                    className="w-full rounded-xl border p-4"
+                    className="w-full rounded-xl border border-slate-300 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                   />
                 </div>
 
@@ -1134,7 +1148,7 @@ export default function EditProfilePage() {
                       updateTextField("opening_hours", event.target.value)
                     }
                     placeholder="Pon–Pt 8:00–17:00"
-                    className="w-full rounded-xl border p-4"
+                    className="w-full rounded-xl border border-slate-300 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                   />
                 </div>
               </div>
@@ -1149,7 +1163,7 @@ export default function EditProfilePage() {
                       updateTextField("facebook", event.target.value)
                     }
                     placeholder="Link do profilu"
-                    className="w-full rounded-xl border p-4"
+                    className="w-full rounded-xl border border-slate-300 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                   />
                 </div>
 
@@ -1162,7 +1176,7 @@ export default function EditProfilePage() {
                       updateTextField("instagram", event.target.value)
                     }
                     placeholder="Link do profilu"
-                    className="w-full rounded-xl border p-4"
+                    className="w-full rounded-xl border border-slate-300 bg-white p-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                   />
                 </div>
               </div>
@@ -1177,8 +1191,9 @@ export default function EditProfilePage() {
           >
             {saving ? "Zapisywanie..." : "💾 Zapisz profil"}
           </button>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }

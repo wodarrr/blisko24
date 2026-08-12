@@ -351,7 +351,8 @@ export default function Hero() {
                       event.target.value
                     )
                   }
-                  className="h-14 w-full rounded-xl border border-slate-200 px-4 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="h-14 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  style={{ WebkitTextFillColor: "#0f172a" }}
                 />
               </div>
 
@@ -375,7 +376,8 @@ export default function Hero() {
                       event.target.value
                     )
                   }
-                  className="h-14 w-full rounded-xl border border-slate-200 px-4 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  className="h-14 w-full rounded-xl border border-slate-200 bg-white px-4 text-slate-900 placeholder:text-slate-400 caret-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  style={{ WebkitTextFillColor: "#0f172a" }}
                 />
               </div>
 

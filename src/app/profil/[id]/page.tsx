@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import Header from "../../../components/Header";
 import AdvertisementCard from "../../../components/AdvertisementCard";
 import ProfileContact from "../../../components/ProfileContact";
 import ProfileReviews from "../../../components/ProfileReviews";
@@ -251,9 +252,21 @@ export default async function ProfilePage({
     getActivityStatus(profile.last_seen);
 
   return (
-    <main className="min-h-screen bg-gray-100">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-        <section className="overflow-hidden rounded-3xl bg-white shadow">
+    <>
+      <Header />
+
+      <main className="min-h-screen bg-gray-100">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+          <div className="mb-5">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-800 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+            >
+              ← Strona główna
+            </Link>
+          </div>
+
+          <section className="overflow-hidden rounded-3xl bg-white shadow">
           <div className="h-32 bg-gradient-to-r from-blue-800 via-blue-700 to-cyan-500 sm:h-44" />
 
           <div className="px-5 pb-8 sm:px-8 lg:px-10">
@@ -448,7 +461,8 @@ export default async function ProfilePage({
             </div>
           )}
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   );
 }

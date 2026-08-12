@@ -87,39 +87,41 @@ export default async function ProvinceStatistics() {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-16">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-900">
-          🇵🇱 Ogłoszenia według województw
-        </h2>
+    <section className="bg-white text-slate-900">
+      <div className="mx-auto max-w-7xl px-6 py-16">
+        <div className="mb-8">
+          <h2 className="text-3xl font-extrabold text-slate-950">
+            🇵🇱 Ogłoszenia według województw
+          </h2>
 
-        {!showStatistics && (
-          <p className="mt-3 text-slate-600">
-            Wybierz województwo i sprawdź lokalne możliwości w swojej
-            okolicy.
-          </p>
-        )}
-      </div>
+          {!showStatistics && (
+            <p className="mt-3 text-slate-600">
+              Wybierz województwo i sprawdź lokalne możliwości w swojej
+              okolicy.
+            </p>
+          )}
+        </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {statistics.map((item) => (
-          <div
-            key={item.province}
-            className="flex items-center justify-between rounded-2xl bg-white p-5 shadow transition hover:shadow-lg"
-          >
-            <span className="font-semibold text-slate-800">
-              {item.province}
-            </span>
+        <div className="grid gap-4 md:grid-cols-2">
+          {statistics.map((item) => (
+            <div
+              key={item.province}
+              className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-lg"
+            >
+              <span className="font-semibold text-slate-900">
+                {item.province}
+              </span>
 
-            {showStatistics &&
-              item.count !== null &&
-              item.count > 0 && (
-                <span className="rounded-full bg-blue-100 px-4 py-2 font-bold text-blue-700">
-                  {item.count.toLocaleString("pl-PL")}
-                </span>
-              )}
-          </div>
-        ))}
+              {showStatistics &&
+                item.count !== null &&
+                item.count > 0 && (
+                  <span className="rounded-full bg-blue-100 px-4 py-2 font-bold text-blue-700">
+                    {item.count.toLocaleString("pl-PL")}
+                  </span>
+                )}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import Header from "../../components/Header";
 import AccountCard from "../../components/account/AccountCard";
 import { supabase } from "../../lib/supabase";
 
@@ -469,9 +470,13 @@ export default function KontoPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-100">
-        <p className="text-lg">Ładowanie konta...</p>
-      </main>
+      <>
+        <Header />
+
+        <main className="flex min-h-screen items-center justify-center bg-gray-100">
+          <p className="text-lg text-slate-900">Ładowanie konta...</p>
+        </main>
+      </>
     );
   }
 
@@ -485,8 +490,20 @@ export default function KontoPage() {
   );
 
   return (
-    <main className="min-h-screen bg-gray-100">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+    <>
+      <Header />
+
+      <main className="min-h-screen bg-gray-100">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+          <div className="mb-5">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-800 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+            >
+              ← Strona główna
+            </Link>
+          </div>
+
         {errorMessage && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5 font-semibold text-red-700">
             {errorMessage}
@@ -768,7 +785,8 @@ export default function KontoPage() {
             🚪 Wyloguj
           </button>
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </>
   );
 }
