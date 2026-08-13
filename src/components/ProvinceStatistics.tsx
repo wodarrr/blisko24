@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { supabase } from "../lib/supabase";
 
 const PUBLIC_STATS_THRESHOLD = 100;
@@ -5,7 +7,7 @@ const APPROVED_STATUS = "approved";
 
 const provinces = [
   "Dolnośląskie",
-  "Kujawsko-Pomorskie",
+  "Kujawsko-pomorskie",
   "Lubelskie",
   "Lubuskie",
   "Łódzkie",
@@ -17,7 +19,7 @@ const provinces = [
   "Pomorskie",
   "Śląskie",
   "Świętokrzyskie",
-  "Warmińsko-Mazurskie",
+  "Warmińsko-mazurskie",
   "Wielkopolskie",
   "Zachodniopomorskie",
 ];
@@ -94,23 +96,28 @@ export default async function ProvinceStatistics() {
             🇵🇱 Ogłoszenia według województw
           </h2>
 
-          {!showStatistics && (
-            <p className="mt-3 text-slate-600">
-              Wybierz województwo i sprawdź lokalne możliwości w swojej
-              okolicy.
-            </p>
-          )}
+          <p className="mt-3 text-slate-600">
+            Wybierz województwo, aby zobaczyć kandydatów do pracy i firmy
+            działające w danym regionie.
+          </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           {statistics.map((item) => (
-            <div
+            <Link
               key={item.province}
-              className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-lg"
+              href={`/wojewodztwo/${encodeURIComponent(item.province)}`}
+              className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-lg"
             >
-              <span className="font-semibold text-slate-900">
-                {item.province}
-              </span>
+              <div>
+                <span className="font-semibold text-slate-900 group-hover:text-blue-800">
+                  {item.province}
+                </span>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Kandydaci i firmy →
+                </p>
+              </div>
 
               {showStatistics &&
                 item.count !== null &&
@@ -119,7 +126,7 @@ export default async function ProvinceStatistics() {
                     {item.count.toLocaleString("pl-PL")}
                   </span>
                 )}
-            </div>
+            </Link>
           ))}
         </div>
       </div>
