@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAdvertisement } from "../../../lib/getAdvertisement";
 import ReportButton from "../../../components/ReportButton";
 import AddReview from "../../../components/AddReview";
+import AdminAdvertisementActions from "../../../components/AdminAdvertisementActions";
 import AdvertisementAuthor from "../../../components/advertisement/AdvertisementAuthor";
 import AdvertisementGallery from "../../../components/advertisement/AdvertisementGallery";
 import OwnerPromotionButton from "../../../components/advertisement/OwnerPromotionButton";
@@ -109,21 +110,15 @@ export default async function AdvertisementPage({
             </h1>
 
             <div className="mt-4 flex flex-col gap-2 text-slate-600 sm:flex-row sm:flex-wrap sm:gap-5">
-              <p>
-                📍 {advertisement.city || "Brak miasta"}
-              </p>
+              <p>📍 {advertisement.city || "Brak miasta"}</p>
 
               {advertisement.province && (
-                <p>
-                  🗺️ {advertisement.province}
-                </p>
+                <p>🗺️ {advertisement.province}</p>
               )}
 
               <p>
                 👁️{" "}
-                {(advertisement.views ?? 0).toLocaleString(
-                  "pl-PL"
-                )}{" "}
+                {(advertisement.views ?? 0).toLocaleString("pl-PL")}{" "}
                 wyświetleń
               </p>
             </div>
@@ -151,8 +146,7 @@ export default async function AdvertisementPage({
               </h2>
 
               <p className="mt-4 whitespace-pre-line break-words leading-7 text-slate-700">
-                {advertisement.description?.trim() ||
-                  "Brak opisu."}
+                {advertisement.description?.trim() || "Brak opisu."}
               </p>
             </section>
 
@@ -173,9 +167,7 @@ export default async function AdvertisementPage({
                   <div className="mt-6 grid gap-3 sm:grid-cols-2">
                     {advertisement.phone && (
                       <a
-                        href={`tel:${String(
-                          advertisement.phone
-                        ).replace(/[^\d+]/g, "")}`}
+                        href={`tel:${String(advertisement.phone).replace(/[^\d+]/g, "")}`}
                         className="flex min-h-14 items-center rounded-xl border border-slate-200 px-5 py-4 font-semibold text-slate-800 transition hover:bg-slate-50"
                       >
                         📞 {advertisement.phone}
@@ -231,9 +223,7 @@ export default async function AdvertisementPage({
                 )}
 
                 <div className="w-full [&_button]:min-h-14 [&_button]:w-full">
-                  <ReportButton
-                    advertisementId={advertisement.id}
-                  />
+                  <ReportButton advertisementId={advertisement.id} />
                 </div>
               </div>
             </section>
@@ -246,6 +236,10 @@ export default async function AdvertisementPage({
             advertisementId={advertisement.id}
           />
         )}
+
+        <AdminAdvertisementActions
+          advertisementId={advertisement.id}
+        />
       </div>
     </main>
   );

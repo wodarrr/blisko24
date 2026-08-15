@@ -7,6 +7,7 @@ import ProfileReviews from "../../../components/ProfileReviews";
 import TrustCard from "../../../components/TrustCard";
 import CandidateProfileCard from "../../../components/CandidateProfileCard";
 import BliskoScore from "../../../components/BliskoScore";
+import AdminProfileActions from "../../../components/AdminProfileActions";
 import { supabase } from "../../../lib/supabase";
 import type { Advertisement } from "../../../types/advertisement";
 
@@ -461,6 +462,8 @@ export default async function ProfilePage({
             </div>
           )}
         </section>
+
+        <AdminProfileActions userId={id} />
         </div>
       </main>
     </>
