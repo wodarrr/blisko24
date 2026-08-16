@@ -1,4 +1,5 @@
 import Header from "../components/Header";
+import HomeIntro from "../components/HomeIntro";
 import Hero from "../components/Hero";
 import FreeJobSeekerBanner from "../components/FreeJobSeekerBanner";
 import ServiceProviderBanner from "../components/ServiceProviderBanner";
@@ -30,9 +31,7 @@ type Props = {
   }>;
 };
 
-export default async function Home({
-  searchParams,
-}: Props) {
+export default async function Home({ searchParams }: Props) {
   const {
     search,
     category,
@@ -50,20 +49,19 @@ export default async function Home({
     <main>
       <Header />
 
-      <Hero />
+      <HomeIntro />
 
       <FreeJobSeekerBanner />
-
       <ServiceProviderBanner />
 
-      <RecentCandidates />
+      <Hero />
 
+      <RecentCandidates />
       <RecentEmployers />
 
       <HomeStats />
 
       <FeaturedAdvertisements />
-
       <PopularAdvertisements />
 
       <Categories />
@@ -82,11 +80,8 @@ export default async function Home({
       />
 
       <ProvinceStatistics />
-
       <HomeBanner />
-
       <PortalStats />
-
       <LivePortal />
 
       <Footer />
