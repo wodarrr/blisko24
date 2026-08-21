@@ -172,7 +172,7 @@ export default function LoginPage() {
       password,
       {
         accountType,
-        emailRedirectTo: `${window.location.origin}/ustawienia/profil`,
+        emailRedirectTo: `${window.location.origin}/konto`,
         termsVersion: TERMS_VERSION,
         privacyVersion: PRIVACY_VERSION,
         acceptedAt,
@@ -196,10 +196,10 @@ export default function LoginPage() {
 
     if (data.session) {
       alert(
-        "Konto zostało utworzone. Uzupełnij teraz profil, aby rozpocząć korzystanie z BLISKO24."
+        "Konto zostało utworzone. Za chwilę zobaczysz, co trzeba uzupełnić, aby profil był gotowy do działania."
       );
 
-      router.replace("/ustawienia/profil");
+      router.replace("/konto");
       router.refresh();
       return;
     }
@@ -208,7 +208,7 @@ export default function LoginPage() {
     setMode("login");
 
     alert(
-      "Konto zostało utworzone. Sprawdź skrzynkę e-mail i otwórz link potwierdzający. Następnie uzupełnisz swój profil."
+      "Konto zostało utworzone. Sprawdź skrzynkę e-mail i otwórz link potwierdzający. Po potwierdzeniu przejdziesz do panelu konta, gdzie zobaczysz, co trzeba uzupełnić."
     );
   }
 
@@ -556,7 +556,7 @@ export default function LoginPage() {
             </button>
 
             <p className="mt-4 text-center text-sm text-slate-500">
-              Po utworzeniu konta przejdziesz do uzupełnienia profilu.
+              Po utworzeniu konta przejdziesz do panelu, który pokaże Ci dokładnie, co jeszcze uzupełnić.
             </p>
           </>
         )}

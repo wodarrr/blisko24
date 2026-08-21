@@ -510,6 +510,49 @@ export default function KontoPage() {
           </div>
         )}
 
+        {completionPercentage < 100 && (
+          <section className="mb-8 overflow-hidden rounded-3xl border-2 border-red-300 bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 p-5 shadow-lg sm:p-7">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-3xl">
+                <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-red-700">
+                  🚨 Uwaga — Twój profil jest niekompletny
+                </p>
+
+                <h2 className="mt-2 text-2xl font-extrabold text-slate-950 sm:text-3xl">
+                  Profil ukończony w {completionPercentage}%
+                </h2>
+
+                <p className="mt-3 text-base font-semibold leading-7 text-slate-800">
+                  Dokończ profil, żeby pracodawcy i inni użytkownicy mogli Cię znaleźć
+                  i zobaczyć najważniejsze informacje o Tobie.
+                </p>
+
+                <div className="mt-5 h-4 overflow-hidden rounded-full bg-white ring-1 ring-red-200">
+                  <div
+                    className="h-full rounded-full bg-red-600 transition-all"
+                    style={{
+                      width: `${completionPercentage}%`,
+                    }}
+                  />
+                </div>
+
+                {nextIncompleteStep && (
+                  <p className="mt-3 text-sm font-bold text-slate-700">
+                    Następny krok: {nextIncompleteStep.label}
+                  </p>
+                )}
+              </div>
+
+              <Link
+                href={nextIncompleteStep?.href ?? "/ustawienia/profil"}
+                className="inline-flex w-full shrink-0 items-center justify-center rounded-2xl bg-red-600 px-7 py-4 text-center text-base font-extrabold text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-red-700 lg:w-auto"
+              >
+                Uzupełnij profil teraz →
+              </Link>
+            </div>
+          </section>
+        )}
+
         <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-blue-800 via-blue-700 to-cyan-500 p-6 text-white shadow-xl sm:p-8">
           <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
             <div>
